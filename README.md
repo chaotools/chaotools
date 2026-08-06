@@ -2,7 +2,7 @@
 
 > 你的工具，你做主
 
-个人工具箱网站，提供 32 个在线工具和 AI 大模型导航。基于 **manifest.json** 驱动的工具市场架构，动态加载，无需重新构建。
+个人工具箱网站，提供 40+ 个在线工具和 AI 大模型导航。基于 **manifest.json** 驱动的工具市场架构，动态加载，无需重新构建。
 
 🌐 [chaotools.tech](https://chaotools.tech)
 
@@ -12,10 +12,10 @@
 
 | 模块 | 说明 |
 |------|------|
-| 🧰 **工具市场** | 17 个开发工具（JSON、Base64、JWT、正则、渐变生成…）+ 7 个趣味工具（彩虹屁、毒鸡汤、一言…）|
+| 🧰 **工具市场** | 40+ 个工具（开发 / AI 导航 / 趣味），manifest 驱动动态增减 |
 | 🤖 **AI 大模型导航** | ChatGPT、Claude、DeepSeek、Gemini、Kimi、通义千问、Grok、Perplexity — 品牌图标 + 一键直达 |
-| 💬 **留言板** | 访客可提交工具建议和反馈（Node.js + Express + JSON 存储） |
-| 🔍 **搜索 + 分类** | Fuse.js 模糊搜索 + 分类筛选（开发 / 趣味 / AI） |
+| 💬 **留言板 / 工具 API** | 留言、SRT 翻译与替换规则同步、访问计数（Node.js + Express） |
+| 🔍 **搜索 + 分类** | 客户端即时搜索 + 分类筛选（开发 / AI / 趣味） |
 | 🎨 **暗色/亮色主题** | CSS 变量驱动，一键切换 |
 | 🖼 **品牌图标** | 品牌色圆形 PNG 图标，manifest 驱动，热更新无需构建 |
 | 📱 **响应式设计** | 适配桌面端和移动端 |
@@ -38,15 +38,17 @@
 │                                      │
 │  ┌──────────────────────────────┐    │
 │  │  独立工具页 (纯 HTML)         │    │
-│  │  /order-distributor/        │    │
-│  │  /qrcode-generator/          │    │
-│  │  /timestamp-converter/ 等 13 │    │
+│  │  /tools/* 与各独立目录        │    │
 │  └──────────────────────────────┘    │
 │                                      │
 │  ┌──────────────────────────────┐    │
-│  │  API 服务 (Node.js/Express)  │    │
+│  │  后端 API（systemd 托管）     │    │
 │  │  ┌────────────────────────┐  │    │
 │  │  │ /api/message-board/*   │  │    │
+│  │  │ /api-studio/*          │  │    │
+│  │  │ /lhb-analyzer/         │  │    │
+│  │  │ /audio-trimmer/        │  │    │
+│  │  │ api.chaotools.tech     │  │    │
 │  │  └────────────────────────┘  │    │
 │  └──────────────────────────────┘    │
 │                                      │
@@ -68,14 +70,14 @@
 | 构建工具 | Vite 5 | 快速 HMR + 构建 |
 | 路由 | React Router v6 | 首页 / 探索 / 收藏 / 工具详情 |
 | 样式 | CSS3 自定义变量 | 暗色/亮色双主题 |
-| 搜索 | Fuse.js | 客户端模糊搜索 |
-| 后端 API | Node.js + Express | 留言板接口 |
+| 搜索 | 客户端即时搜索 | 名称/描述/标签子串匹配 |
+| 后端 API | Node.js + Express / Python FastAPI | 留言板、视频工作室、证件照、龙虎榜分析等 |
 | 网关 (开发中) | Hono 4 + SQLite | 工具注册 / 用户认证 / 权限管理 |
 | 类型系统 | `@chaotools/types` | 统一类型定义（Hub + Gateway 共用） |
-| 部署 | Nginx | 静态文件服务 + 反向代理 |
+| 部署 | Nginx + systemd | 静态文件服务 + 反向代理 + 服务托管 |
 | 存储 | JSON 文件 | 轻量留言数据持久化 |
 | 依赖管理 | pnpm | monorepo workspace |
-| 版本控制 | cnb.cool Git | 源码托管 |
+| 版本控制 | GitHub | 公开源码托管 |
 
 ## 📁 项目结构
 
@@ -107,7 +109,7 @@ chaotools/
 │   │   └── main.tsx                  # 入口
 │   ├── public/
 │   │   └── manifest.json             # 工具注册表
-│   └── dist/                         # 构建产物
+│   └── dist/                         # 构建产物（不提交）
 ├── packages/                         # 共享包
 │   ├── types/                        # 统一类型定义（Tool/Manifest/Category…）
 │   ├── sdk/                          # 工具开发 SDK
@@ -117,6 +119,8 @@ chaotools/
 │       ├── routes/                   # tools / auth / registry / teams…
 │       └── services/                 # db / auth / permission…
 ├── tools/                            # 独立工具页
+├── api/message-board/                # 留言板 / SRT / 计数 API（Node.js）
+├── backends/                         # 独立后端服务源码（视频/证件照/龙虎榜）
 ├── scripts/                          # 部署脚本
 └── docs/                             # 文档
 ```
@@ -125,7 +129,7 @@ chaotools/
 
 ```bash
 # 克隆
-git clone https://cnb.cool/chaotools/chaotools.git
+git clone https://github.com/chaotools/chaotools.git
 cd chaotools
 
 # 安装依赖
@@ -143,15 +147,18 @@ cd hub && pnpm build
 
 ## 📦 部署
 
-构建产物部署到 `/var/www/html/`，Nginx 直接托管：
+生产环境为腾讯云轻量应用服务器（Ubuntu + Nginx + Let's Encrypt + systemd），站点根目录 `/var/www/html`：
 
 ```bash
 # 构建
 cd hub && pnpm build
 
-# 部署
+# 部署（以 hub 为例）
 cp dist/index.html /var/www/html/
 cp dist/assets/* /var/www/html/assets/
+
+# 后端服务（systemd）
+systemctl restart message-board video-studio miniapp-backend lhb-analyzer audio-trimmer
 ```
 
 ## 🔄 添加新工具
@@ -167,7 +174,7 @@ cp dist/assets/* /var/www/html/assets/
   "categories": ["dev"],
   "tags": ["标签"],
   "icon": "/assets/brands/my-tool.png",
-  "tech": { "entry": "/my-tool/", "version": "1.0.0" },
+  "tech": { "entry": "/tools/my-tool/", "version": "1.0.0" },
   "pricing": { "type": "free" },
   "visibility": "public",
   "status": "published",
@@ -181,11 +188,16 @@ cp dist/assets/* /var/www/html/assets/
 
 ## 🌐 部署信息
 
-- **服务器**：Ubuntu + Nginx 1.24
+- **服务器**：腾讯云轻量应用服务器（北京），Ubuntu + Nginx + systemd
 - **域名**：chaotools.tech（SSL via Let's Encrypt / Certbot）
-- **API 服务**：systemd 守护进程 (`chaotools-message-board`)，端口 3456
+- **API 服务**：systemd 托管
+  - `message-board`（3456）：留言 / SRT / 同步规则 / 计数
+  - `video-studio`（8765）：视频合成 / TTS / 模板渲染
+  - `miniapp-backend`（8899）：证件照换底色 / 内容安全 / 汇率
+  - `lhb-analyzer`（8000）：龙虎榜游资分析
+  - `audio-trimmer`（8081）：音频静音裁剪
 - **CDN 策略**：Nginx 缓存控制（30d 不可变缓存 for hashed assets）
-- **源码托管**：[cnb.cool/chaotools/chaotools](https://cnb.cool/chaotools/chaotools)
+- **源码托管**：[github.com/chaotools/chaotools](https://github.com/chaotools/chaotools)
 
 ## 📄 License
 
