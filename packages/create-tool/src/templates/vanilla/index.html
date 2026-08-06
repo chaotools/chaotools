@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TOOL_NAME}}</title>
+  <style>
+    /* 基础样式 - 可在 Chaotools 主站中覆盖 */
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(0, 255, 157, 0.12);
+      --cyan: #00ff9d;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: var(--cyan);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    textarea, input, button {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    button {
+      background: var(--cyan);
+      color: var(--bg);
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    #output {
+      background: var(--bg);
+      padding: 12px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: pre-wrap;
+      min-height: 100px;
+    }
+
+    /* 加载 SDK */
+    .sdk-loaded { display: none; }
+    .sdk-loading { color: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{{TOOL_NAME}}</h1>
+
+    <div class="card">
+      <textarea id="input" placeholder="输入内容..."></textarea>
+      <button id="process">处理</button>
+      <div id="output" style="margin-top: 12px;">结果将显示在这里</div>
+    </div>
+  </div>
+
+  <!-- 加载 Chaotools SDK (可选, 用于独立运行) -->
+  <script>
+    // 检测是否在 Chaotools 主站中运行
+    if (typeof window.createTool === 'undefined') {
+      // 独立运行模式 - 基础功能
+      document.getElementById('process').addEventListener('click', function() {
+        var input = document.getElementById('input').value;
+        var output = document.getElementById('output');
+
+        // TODO: 实现你的工具逻辑
+        output.textContent = '输入: ' + input;
+      });
+    }
+  </script>
+
+  <!-- 工具逻辑 (使用 SDK) -->
+  <!--
+  <script type="module">
+    import { createTool } from 'https://cdn.chaotools.tech/sdk/index.js';
+
+    createTool({
+      id: 'tool-id',
+      name: '{{TOOL_NAME}}',
+      render: (app) => {
+        // 渲染完成后
+        app.on('#process', 'click', () => {
+          const input = app.getValue('#input');
+          // 处理逻辑
+          app.setValue('#output', '结果: ' + process(input));
+        });
+      }
+    });
+  </script>
+  -->
+</body>
+</html>

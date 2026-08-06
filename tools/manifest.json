@@ -1,0 +1,123 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-06-18",
+  "tools": [
+    {
+      "id": "json-formatter",
+      "name": "JSON 格式化",
+      "slug": "json-formatter",
+      "description": "JSON 数据格式化、压缩、校验",
+      "category": "dev",
+      "tags": ["json", "格式化", "开发"],
+      "entry": "json-formatter/index.html"
+    },
+    {
+      "id": "color-converter",
+      "name": "颜色转换器",
+      "slug": "color-converter",
+      "description": "HEX、RGB、HSL 颜色互转",
+      "category": "dev",
+      "tags": ["颜色", "HEX", "RGB"],
+      "entry": "color-converter/index.html"
+    },
+    {
+      "id": "regex-tester",
+      "name": "正则测试器",
+      "slug": "regex-tester",
+      "description": "在线正则表达式测试工具",
+      "category": "dev",
+      "tags": ["正则", "regex", "测试"],
+      "entry": "regex-tester/index.html"
+    },
+    {
+      "id": "base64-codec",
+      "name": "Base64 编解码",
+      "slug": "base64-codec",
+      "description": "标准 Base64 / URL-safe 模式切换",
+      "category": "dev",
+      "tags": ["Base64", "编码", "解码"],
+      "entry": "base64-codec/index.html"
+    },
+    {
+      "id": "uuid-generator",
+      "name": "UUID / 密码生成",
+      "slug": "uuid-generator",
+      "description": "v4 UUID + NanoID 生成，可调长度密码",
+      "category": "dev",
+      "tags": ["UUID", "密码", "生成器"],
+      "entry": "uuid-generator/index.html"
+    },
+    {
+      "id": "rainbow-fart",
+      "name": "彩虹屁生成器",
+      "slug": "rainbow-fart",
+      "description": "程序员专属彩虹屁，夸人也能这么专业",
+      "category": "fun",
+      "tags": ["彩虹屁", "夸人", "趣味"],
+      "entry": "rainbow-fart/index.html"
+    },
+    {
+      "id": "emoji-search",
+      "name": "Emoji 搜索",
+      "slug": "emoji-search",
+      "description": "14 大分类 130+ emoji，中文关键词检索",
+      "category": "fun",
+      "tags": ["Emoji", "表情", "搜索"],
+      "entry": "emoji-search/index.html"
+    },
+    {
+      "id": "random-avatar",
+      "name": "随机头像",
+      "slug": "random-avatar",
+      "description": "生成有趣的随机头像",
+      "category": "fun",
+      "tags": ["头像", "随机", "生成器"],
+      "entry": "random-avatar/index.html"
+    },
+    {
+      "id": "poison-soup",
+      "name": "毒鸡汤",
+      "slug": "poison-soup",
+      "description": "振奋人心的毒鸡汤，治愈精神内耗",
+      "category": "fun",
+      "tags": ["毒鸡汤", "文案", "治愈"],
+      "entry": "poison-soup/index.html"
+    },
+    {
+      "id": "hitokoto",
+      "name": "一言 / 诗句",
+      "slug": "hitokoto",
+      "description": "随机获取一言或诗句",
+      "category": "fun",
+      "tags": ["一言", "诗句", "诗词"],
+      "entry": "hitokoto/index.html"
+    },
+    {
+      "id": "srt-pipeline",
+      "name": "SRT 翻译+替换流水线",
+      "slug": "srt-pipeline",
+      "description": "SRT 字幕一站式处理：导入 → AI翻译 → 批量替换 → 导出",
+      "category": "dev",
+      "tags": ["SRT", "字幕", "翻译", "替换", "流水线"],
+      "entry": "srt-pipeline/index.html"
+    },
+    {
+      "id": "video-studio",
+      "name": "视频工作室",
+      "slug": "video-studio",
+      "description": "AI 视频自动化生产线：TTS配音 + 文稿对齐字幕 + 视频合成",
+      "category": "dev",
+      "tags": ["视频", "AI", "TTS", "字幕", "合成"],
+      "entry": "video-studio/index.html"
+    },
+    {
+      "id": "teleprompter",
+      "name": "提词器",
+      "slug": "teleprompter",
+      "description": "在线提词器，支持滚动速度调节、字体大小、镜像模式",
+      "category": "dev",
+      "tags": ["提词器", "演讲", "录制"],
+      "entry": "teleprompter/index.html"
+    }
+  ]
+}

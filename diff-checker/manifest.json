@@ -1,0 +1,11 @@
+{
+  "id": "diff-checker",
+  "name": "Diff 对比器",
+  "description": "文本和文件差异对比工具，支持粘贴文本或上传文件（txt/json/csv/xml等），并排或统一视图",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["diff", "对比", "文本", "文件", "差异"],
+  "features": ["文本对比", "文件上传", "并排视图", "统一视图"]
+}

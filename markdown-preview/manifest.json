@@ -1,0 +1,11 @@
+{
+  "id": "markdown-preview",
+  "name": "Markdown 预览器",
+  "description": "实时渲染 Markdown，支持分栏/编辑/预览三种模式",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["Markdown", "预览", "渲染"],
+  "features": ["实时渲染", "分栏模式", "编辑/预览切换"]
+}

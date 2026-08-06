@@ -1,0 +1,13 @@
+{
+  "name": "@chaotools/tool-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'No build step needed for vanilla template'"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

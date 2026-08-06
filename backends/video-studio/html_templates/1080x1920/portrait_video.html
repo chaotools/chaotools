@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="template:media-width" content="1024">
+<meta name="template:media-height" content="1024">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  width:1080px;height:1920px;margin:0;padding:0;overflow:hidden;
+  font-family:'WenQuanYi Zen Hei','Droid Sans Fallback',sans-serif;
+  background:transparent;color:#fff;
+  position:relative;
+}
+
+/* 顶部渐变装饰条 */
+.top-bar{
+  position:absolute;top:0;left:0;width:100%;height:260px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.5) 0%,transparent 100%);
+  z-index:0;
+}
+
+/* 主标题区域 — 定位在顶部 */
+.title-area{
+  position:absolute;top:80px;left:60px;right:60px;z-index:1;
+  text-align:center;
+}
+.main-title{
+  font-size:56px;font-weight:700;color:#fff;
+  line-height:1.3;text-shadow:0 4px 20px rgba(0,0,0,0.5);
+  margin-bottom:16px;
+}
+.sub-title{
+  font-size:30px;font-weight:400;color:rgba(255,255,255,0.7);
+  line-height:1.4;letter-spacing:2px;
+}
+
+/* 中间视频/白场区域 */
+.video-area{
+  position:absolute;top:330px;left:30px;right:30px;
+  height:920px;
+  border-radius:24px;overflow:hidden;
+  background:rgba(0,0,0,0.3);
+  box-shadow:0 10px 60px rgba(0,0,0,0.4);
+  z-index:1;
+}
+.video-area img{
+  width:100%;height:100%;object-fit:cover;
+}
+.video-placeholder{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.3);
+  color:rgba(255,255,255,0.15);font-size:24px;
+}
+
+/* 双语字幕区域 */
+.subtitle-area{
+  position:absolute;top:1300px;left:60px;right:60px;
+  text-align:center;z-index:1;
+}
+.sub-cn{
+  font-size:32px;font-weight:700;color:#fff;
+  line-height:1.5;text-shadow:0 2px 12px rgba(0,0,0,0.6);
+  margin-bottom:4px;
+}
+.sub-en{
+  font-size:22px;font-weight:400;color:rgba(255,255,255,0.65);
+  line-height:1.4;letter-spacing:1px;
+}
+
+/* 底部提示文字 */
+.footer-area{
+  position:absolute;bottom:100px;left:0;width:100%;
+  text-align:center;z-index:1;
+}
+.hint-line1{
+  font-size:26px;color:rgba(255,255,255,0.5);
+  letter-spacing:3px;margin-bottom:8px;
+}
+.hint-line2{
+  font-size:20px;color:rgba(255,255,255,0.35);
+  letter-spacing:2px;
+}
+
+/* 底部装饰线 */
+.bottom-line{
+  position:absolute;bottom:60px;left:50%;
+  transform:translateX(-50%);
+  width:200px;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+  z-index:1;
+}
+</style>
+</head>
+<body>
+<div class="top-bar"></div>
+
+<div class="title-area">
+  <div class="main-title">{{title}}</div>
+  <div class="sub-title">{{text}}</div>
+</div>
+
+<div class="video-area">
+  <img src="{{image}}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+  <div class="video-placeholder" style="display:none">🎬 背景视频</div>
+</div>
+
+<div class="subtitle-area">
+  <div class="sub-cn">{{sub_cn:文字=中文双语字幕}}</div>
+  <div class="sub-en">{{sub_en:文字=English Subtitle}}</div>
+</div>
+
+<div class="footer-area">
+  <div class="hint-line1">股市有风险 投资需谨慎</div>
+  <div class="hint-line2">历史数据仅供参考 不构成投资建议</div>
+</div>
+
+<div class="bottom-line"></div>
+
+<script>
+  // 模板变量说明（不会出现在渲染结果中）
+  // {{title}}    — 主标题（取自文案第一句）
+  // {{text}}     — 副标题
+  // {{image}}    — 背景视频封面
+  // {{sub_cn}}   — 中文双语字幕行
+  // {{sub_en}}   — 英文字幕行
+</script>
+</body>
+</html>

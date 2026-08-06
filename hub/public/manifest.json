@@ -1,0 +1,946 @@
+{
+  "name": "Chaotools",
+  "version": "1.0.0",
+  "description": "你的工具，你做主",
+  "tools": [
+    {
+      "id": "json-formatter",
+      "name": "JSON 格式化",
+      "description": "JSON 数据格式化、压缩、校验",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/tools/json-formatter/"
+      },
+      "tags": [
+        "json",
+        "格式化",
+        "开发"
+      ],
+      "icon": "🧩",
+      "slug": "json-formatter",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "color-converter",
+      "name": "颜色转换器",
+      "description": "HEX、RGB、HSL 颜色互转",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/tools/color-converter/"
+      },
+      "tags": [
+        "颜色",
+        "HEX",
+        "RGB"
+      ],
+      "icon": "🎨",
+      "slug": "color-converter",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "regex-tester",
+      "name": "正则测试器",
+      "description": "在线正则表达式测试工具",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/tools/regex-tester/"
+      },
+      "tags": [
+        "正则",
+        "regex",
+        "测试"
+      ],
+      "icon": "🔍",
+      "slug": "regex-tester",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "base64-codec",
+      "name": "Base64 编解码",
+      "description": "标准 Base64 / URL-safe 模式切换",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/tools/base64-codec/"
+      },
+      "tags": [
+        "Base64",
+        "编码",
+        "解码"
+      ],
+      "icon": "🔐",
+      "slug": "base64-codec",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "uuid-generator",
+      "name": "UUID / 密码生成",
+      "description": "v4 UUID + NanoID 生成，可调长度密码",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/tools/uuid-generator/"
+      },
+      "tags": [
+        "UUID",
+        "密码",
+        "生成器"
+      ],
+      "icon": "🎲",
+      "slug": "uuid-generator",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "srt-replace",
+      "name": "SRT 批量替换",
+      "description": "SRT 字幕文件批量替换敏感词，支持词表管理、导入导出",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/srt-replace/"
+      },
+      "tags": [
+        "SRT",
+        "字幕",
+        "替换",
+        "剪映"
+      ],
+      "icon": "📝",
+      "slug": "srt-replace",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "srt-pipeline",
+      "name": "SRT 翻译+替换流水线",
+      "description": "SRT 字幕一站式处理：导入 → AI翻译 → 批量替换 → 导出",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/srt-pipeline/"
+      },
+      "tags": [
+        "SRT",
+        "字幕",
+        "翻译",
+        "替换",
+        "流水线"
+      ],
+      "icon": "🔗",
+      "slug": "srt-pipeline",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "rainbow-fart",
+      "name": "彩虹屁生成器",
+      "description": "程序员专属彩虹屁，夸人也能这么专业",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/tools/rainbow-fart/"
+      },
+      "tags": [
+        "彩虹屁",
+        "夸人",
+        "趣味"
+      ],
+      "icon": "🌈",
+      "slug": "rainbow-fart",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "emoji-search",
+      "name": "Emoji 搜索",
+      "description": "14 大分类 130+ emoji，中文关键词检索",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/emoji-search"
+      },
+      "tags": [
+        "Emoji",
+        "表情",
+        "搜索"
+      ],
+      "icon": "😎",
+      "slug": "emoji-search",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "random-avatar",
+      "name": "随机头像",
+      "description": "生成有趣的随机头像",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/tools/random-avatar/"
+      },
+      "tags": [
+        "头像",
+        "随机",
+        "生成器"
+      ],
+      "icon": "👤",
+      "slug": "random-avatar",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "poison-soup",
+      "name": "毒鸡汤",
+      "description": "振奋人心的毒鸡汤，治愈精神内耗",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/tools/poison-soup/"
+      },
+      "tags": [
+        "毒鸡汤",
+        "文案",
+        "治愈"
+      ],
+      "icon": "🍵",
+      "slug": "poison-soup",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "hitokoto",
+      "name": "一言 / 诗句",
+      "description": "随机获取一言或诗句",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/tools/hitokoto/"
+      },
+      "tags": [
+        "一言",
+        "诗句",
+        "诗词"
+      ],
+      "icon": "✍️",
+      "slug": "hitokoto",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "message-board",
+      "name": "留言板",
+      "description": "在线留言板，实时交流互动",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/message-board/"
+      },
+      "tags": [
+        "留言",
+        "交流",
+        "互动"
+      ],
+      "icon": "💬",
+      "slug": "message-board",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "regex101",
+      "name": "Regex101",
+      "description": "强大的在线正则表达式测试与调试器",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "https://regex101.com/"
+      },
+      "tags": [
+        "正则",
+        "regex",
+        "调试"
+      ],
+      "icon": "🧪",
+      "slug": "regex101",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "codepen",
+      "name": "CodePen",
+      "description": "在线代码编辑器与前端实验平台",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "https://codepen.io/pen/"
+      },
+      "tags": [
+        "代码",
+        "HTML",
+        "CSS",
+        "JS"
+      ],
+      "icon": "✒️",
+      "slug": "codepen",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "description": "笔记、文档、项目管理一站式工作空间",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "https://www.notion.com/zh-cn"
+      },
+      "tags": [
+        "笔记",
+        "文档",
+        "项目管理",
+        "协作"
+      ],
+      "icon": "📝",
+      "slug": "notion",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "description": "OpenAI 开发的对话式 AI 助手，支持文本生成、代码编写、数据分析等",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://chat.openai.com"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "OpenAI",
+        "GPT"
+      ],
+      "thumbnail": "/icons/ai/chatgpt.svg",
+      "icon": "🤖",
+      "slug": "chatgpt",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "description": "Anthropic 开发的 AI 助手，擅长长文本理解、编程与深度推理",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://claude.ai"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "Anthropic",
+        "Claude"
+      ],
+      "thumbnail": "/icons/ai/claude.svg",
+      "icon": "🧠",
+      "slug": "claude",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "description": "深度求索开发的 AI 模型，拥有强大的推理和编程能力",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://chat.deepseek.com"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "DeepSeek",
+        "推理"
+      ],
+      "thumbnail": "/icons/ai/deepseek.svg",
+      "icon": "🐋",
+      "slug": "deepseek",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "description": "Google 开发的多模态 AI 模型，支持文本、图像、代码等多种输入",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://gemini.google.com"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "Google",
+        "多模态"
+      ],
+      "thumbnail": "/icons/ai/gemini.svg",
+      "icon": "♊",
+      "slug": "gemini",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "kimi",
+      "name": "Kimi",
+      "description": "月之暗面开发的 AI 助手，超长上下文窗口，擅长处理大量文本",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://kimi.moonshot.cn"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "Kimi",
+        "长文本"
+      ],
+      "thumbnail": "/icons/ai/kimi.svg",
+      "icon": "🌙",
+      "slug": "kimi",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "tongyi",
+      "name": "通义千问",
+      "description": "阿里云开发的 AI 助手，支持对话、文档理解、代码生成等",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://tongyi.aliyun.com"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "阿里",
+        "通义"
+      ],
+      "thumbnail": "/icons/ai/tongyi.svg",
+      "icon": "☁️",
+      "slug": "tongyi",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "description": "xAI 开发的 AI 助手，实时获取网络信息，风格幽默直率",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://grok.com"
+      },
+      "tags": [
+        "AI",
+        "对话",
+        "xAI",
+        "Grok"
+      ],
+      "thumbnail": "/icons/ai/grok.svg",
+      "icon": "🚀",
+      "slug": "grok",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "perplexity",
+      "name": "Perplexity",
+      "description": "AI 搜索引擎，结合实时网络搜索与 AI 对话，提供带来源的答案",
+      "categories": [
+        "ai"
+      ],
+      "tech": {
+        "entry": "https://www.perplexity.ai"
+      },
+      "tags": [
+        "AI",
+        "搜索",
+        "Perplexity",
+        "实时"
+      ],
+      "thumbnail": "/icons/ai/perplexity.svg",
+      "icon": "🔎",
+      "slug": "perplexity",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "qrcode-generator",
+      "name": "二维码生成器",
+      "description": "输入文本或链接，一键生成二维码并下载 PNG",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/qrcode-generator/"
+      },
+      "tags": [
+        "二维码",
+        "QRCode",
+        "生成器"
+      ],
+      "icon": "/assets/brands/qrcode.png",
+      "thumbnail": "/assets/brands/qrcode.png",
+      "slug": "qrcode-generator",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "timestamp-converter",
+      "name": "时间戳转换器",
+      "description": "Unix 时间戳与日期时间互转，支持秒/毫秒模式",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/timestamp-converter/"
+      },
+      "tags": [
+        "时间戳",
+        "Unix",
+        "转换",
+        "日期"
+      ],
+      "icon": "/assets/brands/timestamp.png",
+      "thumbnail": "/assets/brands/timestamp.png",
+      "slug": "timestamp-converter",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "jwt-decoder",
+      "name": "JWT 解码器",
+      "description": "纯本地解析 JSON Web Token，查看 Header 和 Payload，隐私安全",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/jwt-decoder/"
+      },
+      "tags": [
+        "JWT",
+        "Token",
+        "解码",
+        "认证"
+      ],
+      "icon": "/assets/brands/jwt.png",
+      "thumbnail": "/assets/brands/jwt.png",
+      "slug": "jwt-decoder",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "markdown-preview",
+      "name": "Markdown 预览器",
+      "description": "实时渲染 Markdown，支持分栏/编辑/预览三种模式",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/markdown-preview/"
+      },
+      "tags": [
+        "Markdown",
+        "预览",
+        "渲染"
+      ],
+      "icon": "/assets/brands/markdown.png",
+      "thumbnail": "/assets/brands/markdown.png",
+      "slug": "markdown-preview",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "gradient-generator",
+      "name": "CSS 渐变生成器",
+      "description": "可视化调色，选择方向，一键复制 CSS 渐变代码",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/gradient-generator/"
+      },
+      "tags": [
+        "CSS",
+        "渐变",
+        "生成器",
+        "颜色"
+      ],
+      "icon": "/assets/brands/gradient.png",
+      "thumbnail": "/assets/brands/gradient.png",
+      "slug": "gradient-generator",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "password-strength",
+      "name": "密码强度检测",
+      "description": "实时评估密码强度，估算破解时长，支持生成强密码",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/password-strength/"
+      },
+      "tags": [
+        "密码",
+        "安全",
+        "强度检测",
+        "生成器"
+      ],
+      "icon": "/assets/brands/password.png",
+      "thumbnail": "/assets/brands/password.png",
+      "slug": "password-strength",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "random-picker",
+      "name": "随机数 / 抽奖器",
+      "description": "随机数生成 + 名单抽奖，带抽取动画和历史记录",
+      "categories": [
+        "fun"
+      ],
+      "tech": {
+        "entry": "/random-picker/"
+      },
+      "tags": [
+        "随机",
+        "抽奖",
+        "抽签",
+        "趣味"
+      ],
+      "icon": "/assets/brands/random.png",
+      "thumbnail": "/assets/brands/random.png",
+      "slug": "random-picker",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "image-to-base64",
+      "name": "图片转 Base64",
+      "description": "拖入或选择图片，一键转换为 Base64 Data URL",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/image-to-base64/"
+      },
+      "tags": [
+        "图片",
+        "Base64",
+        "编码",
+        "转换"
+      ],
+      "icon": "/assets/brands/image2base64.png",
+      "thumbnail": "/assets/brands/image2base64.png",
+      "slug": "image-to-base64",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "diff-checker",
+      "name": "Diff 对比器",
+      "description": "文本和文件差异对比工具，支持粘贴文本或上传文件（txt/json/csv/xml等），并排或统一视图",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/diff-checker/"
+      },
+      "tags": [
+        "diff",
+        "对比",
+        "文本",
+        "文件",
+        "差异"
+      ],
+      "icon": "🔍",
+      "slug": "diff-checker",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "pixabay",
+      "name": "Pixabay 视频搜索",
+      "description": "搜索 Pixabay 免费4K视频素材，在线预览，一键获取下载链接",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/pixabay/"
+      },
+      "tags": [
+        "视频",
+        "素材",
+        "4K",
+        "Pixabay",
+        "下载"
+      ],
+      "icon": "🎬",
+      "slug": "pixabay",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "video-studio",
+      "name": "视频工作室",
+      "description": "AI 视频自动化生产线：TTS配音 + 文稿对齐字幕 + 视频合成",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/video-studio/"
+      },
+      "tags": [
+        "视频",
+        "AI",
+        "TTS",
+        "字幕",
+        "合成"
+      ],
+      "icon": "🎬",
+      "slug": "video-studio",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "teleprompter",
+      "name": "提词器",
+      "description": "在线提词器，支持滚动速度调节、字体大小、镜像模式",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/teleprompter/"
+      },
+      "tags": [
+        "提词器",
+        "演讲",
+        "录制"
+      ],
+      "icon": "📝",
+      "slug": "teleprompter",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "order-distributor",
+      "name": "单数分配助手",
+      "description": "按抖音播放量占比公平分配整数单量，支持周统计与CSV导出",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/order-distributor"
+      },
+      "tags": [
+        "抖音",
+        "播放量",
+        "分配",
+        "统计",
+        "单量"
+      ],
+      "icon": "📊",
+      "slug": "order-distributor",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    },
+    {
+      "id": "audio-trimmer",
+      "name": "音频静音裁剪",
+      "description": "自动检测并去除音频中的静音片段，播客/vlog/录音剪辑利器",
+      "categories": [
+        "dev"
+      ],
+      "tech": {
+        "entry": "/audio-trimmer/"
+      },
+      "tags": [
+        "音频",
+        "裁剪",
+        "静音",
+        "ffmpeg",
+        "剪辑"
+      ],
+      "icon": "🎵",
+      "slug": "audio-trimmer",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": "dev",
+      "name": "开发工具",
+      "icon": "💻",
+      "description": "日常开发常用工具集"
+    },
+    {
+      "id": "ai",
+      "name": "AI 大模型",
+      "icon": "🤖",
+      "description": "主流 AI 大模型导航"
+    },
+    {
+      "id": "fun",
+      "name": "趣味工具",
+      "icon": "🎮",
+      "description": "轻松好玩的趣味工具"
+    }
+  ]
+}

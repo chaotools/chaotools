@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRT 翻译+替换流水线 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+      --red: #ff4757;
+      --yellow: #ffa502;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 4px;
+      color: var(--cyan);
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    /* ── Sections ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: var(--cyan); }
+    textarea::placeholder { color: var(--text-dim); }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--cyan);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--cyan); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .btn-danger:hover { background: var(--red); color: #fff; }
+
+    .btn-small { padding: 6px 14px; font-size: 13px; }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+
+    /* ── Upload ── */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: var(--cyan);
+      background: rgba(56, 189, 248, 0.03);
+    }
+
+    .upload-area p { color: var(--text-dim); font-size: 14px; }
+    .upload-area .icon { font-size: 28px; margin-bottom: 6px; }
+
+    .import-info {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ── Translation Config ── */
+    .config-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .config-row select {
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .config-row select:focus { border-color: var(--cyan); }
+
+    /* ── Progress ── */
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--cyan);
+      border-radius: 3px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    /* ── Preview ── */
+    .preview-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 320px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .preview-entry {
+      margin-bottom: 6px;
+    }
+
+    .preview-meta {
+      color: #6b7d99;
+      font-size: 11px;
+    }
+
+    /* ── Replace Rules ── */
+    .rules-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .add-rule-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .add-rule-row input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .add-rule-row input:focus { border-color: var(--cyan); }
+    .add-rule-row input::placeholder { color: var(--text-dim); }
+
+    .rules-list {
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .rule-item:last-child { border-bottom: none; }
+
+    .rule-from {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--yellow);
+      min-width: 80px;
+      word-break: break-all;
+    }
+
+    .rule-arrow { color: var(--text-dim); flex-shrink: 0; }
+
+    .rule-to {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--cyan);
+      flex: 1;
+      word-break: break-all;
+    }
+
+    .rule-actions { flex-shrink: 0; display: flex; gap: 6px; }
+
+    .empty-hint {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    /* ── Result ── */
+    .result-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .result-box.empty { color: var(--text-dim); }
+
+    /* ── Stats ── */
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-dim);
+      flex-wrap: wrap;
+    }
+
+    .stat { display: flex; align-items: center; gap: 4px; }
+
+    .stat-value {
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Status ── */
+    .status-banner {
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .status-banner.info  { display:block; background: rgba(0,255,157,.08); color: var(--cyan); border:1px solid rgba(0,255,157,.2); }
+    .status-banner.error { display:block; background: rgba(255,71,87,.08); color: var(--red); border:1px solid rgba(255,71,87,.2); }
+    .status-banner.success { display:block; background: rgba(14,165,233,.08); color: #0ea5e9; border:1px solid rgba(14,165,233,.2); }
+
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .config-row { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>🔗 SRT 翻译 + 替换流水线</h1>
+    <p class="desc">导入 → AI 翻译（双轨道） → 批量替换 → 导出，一站式处理</p>
+
+    <!-- Status -->
+    <div id="statusBanner" class="status-banner info"></div>
+
+    <!-- ═══ Section 1: Import ═══ -->
+    <div class="section" id="secImport">
+      <div class="section-title"><span class="section-num">1</span> 导入 SRT 字幕</div>
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">📁</div>
+        <p>点击上传 SRT 文件，或拖拽到此处</p>
+        <p style="font-size:12px;margin-top:4px;">也支持直接粘贴 SRT 文本</p>
+      </div>
+      <input type="file" id="fileInput" accept=".srt,.txt" style="display:none">
+      <textarea id="inputSrt" placeholder="或直接粘贴 SRT 内容..." spellcheck="false"></textarea>
+      <div class="import-info" id="importStats"></div>
+      <div class="btn-group">
+        <button class="btn-secondary btn-small" onclick="loadDemo()">📋 加载示例</button>
+      </div>
+    </div>
+
+    <!-- ═══ Section 2: Translate ═══ -->
+    <div class="section" id="secTranslate">
+      <div class="section-title"><span class="section-num">2</span> AI 翻译</div>
+      <div class="config-row">
+        <span style="color:var(--text-dim);font-size:13px;">源语言</span>
+        <select id="sourceLang">
+          <option value="zh" selected>中文</option>
+          <option value="en">英语</option>
+          <option value="ja">日语</option>
+          <option value="ko">韩语</option>
+          <option value="fr">法语</option>
+          <option value="de">德语</option>
+          <option value="es">西班牙语</option>
+          <option value="auto">自动检测</option>
+        </select>
+        <span style="color:var(--text-dim);font-size:13px;">目标语言</span>
+        <select id="targetLang">
+          <option value="en">英语</option>
+          <option value="zh">中文</option>
+          <option value="ja">日语</option>
+          <option value="ko">韩语</option>
+          <option value="fr">法语</option>
+          <option value="de">德语</option>
+          <option value="es">西班牙语</option>
+        </select>
+      </div>
+      <p style="font-size:12px;color:var(--text-dim);margin-top:6px;">
+        ⚡ DeepSeek AI 翻译，输出双轨道：📝 原文轨道 + 🌐 译文轨道（相同时间轴，独立字幕条）
+      </p>
+      <div class="btn-group">
+        <button class="btn-primary" id="translateBtn" onclick="doTranslate()">🤖 开始翻译</button>
+      </div>
+      <div id="translateProgress" style="display:none;">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <p class="progress-text" id="progressText">翻译中...</p>
+      </div>
+      <div id="translateResult" style="display:none;">
+        <div class="section-title" style="margin-top:12px;">📄 双轨道预览 <span style="font-size:12px;">（📝 原文 / 🌐 译文）</span></div>
+        <div class="preview-box" id="bilingualPreview"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Section 3: Replace ═══ -->
+    <div class="section" id="secReplace">
+      <div class="section-title"><span class="section-num">3</span> 批量替换</div>
+      <div class="rules-header">
+        <span style="color:var(--text-dim);font-size:14px;">📋 替换词表 <span id="ruleCount" style="color:var(--cyan);">(0)</span></span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="syncCode" placeholder="同步码" style="width:100px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;outline:none">
+          <button class="btn-secondary btn-small" onclick="syncLoad()" style="font-size:11px;padding:4px 8px;">📥 拉取</button>
+          <button class="btn-secondary btn-small" onclick="syncSave()" style="font-size:11px;padding:4px 8px;">📤 推送</button>
+          <span id="syncStatus" style="font-size:11px;color:var(--text-dim);"></span>
+          <button class="btn-secondary btn-small" onclick="exportRules()">导出</button>
+          <button class="btn-secondary btn-small" onclick="importRules()">导入</button>
+        </div>
+      </div>
+
+      <div class="add-rule-row">
+        <input type="text" id="newFrom" placeholder="原文（如：杀）" oninput="checkDuplicate()">
+        <span style="color:var(--text-dim)">→</span>
+        <input type="text" id="newTo" placeholder="替换为（如：沙）">
+        <button class="btn-primary btn-small" id="addBtn" onclick="addRule()">➕ 添加</button>
+      </div>
+      <p id="duplicateHint" style="display:none;font-size:12px;margin:-6px 0 6px;padding:4px 10px;background:rgba(255,165,2,.1);border-radius:4px;color:var(--yellow);"></p>
+
+      <input type="text" id="ruleSearch" placeholder="🔍 搜索规则..." style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:8px;outline:none" oninput="renderRules()">
+
+      <div id="rulesList" class="rules-list">
+        <div class="empty-hint">暂无替换规则，请在上方添加</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" onclick="doReplace()">🔄 执行替换</button>
+      </div>
+      <div class="stats" id="replaceStats" style="display:none;">
+        <span class="stat">替换次数: <span id="replaceCount" class="stat-value">0</span></span>
+        <span class="stat">匹配规则: <span id="matchedRules" class="stat-value">0</span></span>
+      </div>
+    </div>
+
+    <!-- ═══ Section 4: Export ═══ -->
+    <div class="section" id="secExport">
+      <div class="section-title"><span class="section-num">4</span> 最终结果</div>
+      <div class="result-box empty" id="finalResult">等待翻译和替换完成...</div>
+      <div class="stats">
+        <span class="stat">总条数: <span id="finalBlocks" class="stat-value">-</span></span>
+        <span class="stat">总字符: <span id="finalChars" class="stat-value">-</span></span>
+      </div>
+      <div class="btn-group">
+        <button class="btn-primary" onclick="downloadResult()">💾 下载 SRT</button>
+        <button class="btn-secondary" onclick="copyResult()">📋 复制内容</button>
+      </div>
+    </div>
+
+    <input type="file" id="importRuleInput" accept=".json" style="display:none" onchange="handleRuleImport(event)">
+  </div>
+
+  <script>
+    // ── State ──
+    let originalFileName = null;
+    let originalSrt = '';
+    let translatedSrt = '';
+    let replacedSrt = '';
+
+    // ── Rules ──
+    const RULES_KEY = 'srt_pipeline_rules';
+
+    function loadRules() {
+      try { return JSON.parse(localStorage.getItem(RULES_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function saveRules(rules) {
+      localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+    }
+
+    // ── Sync ──
+    const SYNC_API = '/api/message-board/sync-rules';
+    const SYNC_CODE_KEY = 'srt_pipeline_sync_code';
+
+    function getSyncCode() {
+      return (document.getElementById('syncCode').value || '').trim();
+    }
+
+    function setSyncStatus(msg, ok) {
+      const el = document.getElementById('syncStatus');
+      el.textContent = msg;
+      el.style.color = ok === false ? 'var(--red)' : ok ? 'var(--cyan)' : 'var(--text-dim)';
+    }
+
+    async function syncSave() {
+      const code = getSyncCode();
+      if (code.length < 3) { alert('请先输入同步码（至少3位）'); return; }
+      const rules = loadRules();
+      if (rules.length === 0) { alert('词表为空，无需推送'); return; }
+      setSyncStatus('推送中...');
+      try {
+        const resp = await fetch(SYNC_API + '/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, rules }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          setSyncStatus('✅ 已同步', true);
+          setTimeout(() => setSyncStatus(''), 3000);
+        } else {
+          setSyncStatus('❌ ' + (data.error || '失败'), false);
+        }
+      } catch (e) {
+        setSyncStatus('❌ 网络错误', false);
+      }
+    }
+
+    async function syncLoad() {
+      const code = getSyncCode();
+      if (code.length < 3) { alert('请先输入同步码（至少3位）'); return; }
+      setSyncStatus('加载中...');
+      try {
+        const resp = await fetch(SYNC_API + '/load?code=' + encodeURIComponent(code));
+        const data = await resp.json();
+        if (data.success) {
+          if (data.rules.length === 0) {
+            setSyncStatus('📭 服务端无数据', false);
+          } else {
+            saveRules(data.rules);
+            renderRules();
+            setSyncStatus('✅ 已拉取 ' + data.rules.length + ' 条', true);
+            setTimeout(() => setSyncStatus(''), 3000);
+          }
+        } else {
+          setSyncStatus('❌ ' + (data.error || '失败'), false);
+        }
+      } catch (e) {
+        setSyncStatus('❌ 网络错误', false);
+      }
+    }
+
+    const savedCode = localStorage.getItem(SYNC_CODE_KEY);
+    if (savedCode) document.getElementById('syncCode').value = savedCode;
+    document.getElementById('syncCode').addEventListener('input', function() {
+      localStorage.setItem(SYNC_CODE_KEY, this.value);
+    });
+
+    // ── Status ──
+    function showStatus(msg, type) {
+      const banner = document.getElementById('statusBanner');
+      banner.textContent = (type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ') + msg;
+      banner.className = 'status-banner ' + type;
+      if (type === 'success') {
+        setTimeout(() => { banner.style.display = 'none'; }, 6000);
+      }
+    }
+
+    // ── Section 1: Upload ──
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) loadFile(file);
+    });
+
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) loadFile(file);
+    });
+
+    function loadFile(file) {
+      originalFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        document.getElementById('inputSrt').value = ev.target.result;
+        originalSrt = ev.target.result;
+        updateImportStats();
+      };
+      reader.readAsText(file);
+    }
+
+    document.getElementById('inputSrt').addEventListener('input', function() {
+      const val = this.value.trim();
+      if (val) {
+        originalSrt = val;
+        updateImportStats();
+      }
+    });
+
+    function updateImportStats() {
+      const blocks = parseSRT(originalSrt);
+      document.getElementById('importStats').textContent = '已加载 ' + blocks.length + ' 条字幕' + (originalFileName ? ' — ' + originalFileName : '');
+    }
+
+    function loadDemo() {
+      const demo = '1\n00:00:01,000 --> 00:00:03,000\n大家好，欢迎收看今天的视频\n\n2\n00:00:03,500 --> 00:00:07,000\n今天我要给大家介绍一个非常有趣的工具\n\n3\n00:00:07,500 --> 00:00:11,000\n杀人放火金腰带，修桥补路无尸骸\n\n4\n00:00:11,500 --> 00:00:15,000\n让我们一起探索这个神奇的世界吧\n';
+      document.getElementById('inputSrt').value = demo;
+      originalSrt = demo;
+      originalFileName = 'demo.srt';
+      updateImportStats();
+    }
+
+    // ── SRT Parsing ──
+    function parseSRT(srt) {
+      const blocks = [];
+      const raw = srt.trim().split(/\n\s*\n/);
+      for (const chunk of raw) {
+        const lines = chunk.trim().split('\n');
+        if (lines.length < 3) {
+          if (chunk.trim()) blocks.push({ index: null, timecode: '', text: chunk.trim() });
+          continue;
+        }
+        blocks.push({
+          index: parseInt(lines[0]),
+          timecode: lines[1],
+          text: lines.slice(2).join('\n'),
+        });
+      }
+      return blocks;
+    }
+
+    function buildSRT(blocks) {
+      const out = [];
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i];
+        if (b.index === null && b.timecode === '') {
+          out.push(b.text || '');
+        } else {
+          const idx = b.index !== null ? b.index : (i + 1);
+          out.push([String(idx), b.timecode, b.text].join('\n'));
+        }
+      }
+      return out.join('\n\n');
+    }
+
+    // Convert bilingual (原文\n译文) to dual-track (separate entries)
+    function toDualTrack(srt) {
+      const blocks = parseSRT(srt);
+      const dual = [];
+      for (const b of blocks) {
+        const lines = b.text.split('\n');
+        if (lines.length >= 2) {
+          dual.push({ index: null, timecode: b.timecode, text: lines[0].trim() });
+          dual.push({ index: null, timecode: b.timecode, text: lines.slice(1).join(' ').trim() });
+        } else {
+          dual.push({ index: null, timecode: b.timecode, text: b.text });
+        }
+      }
+      dual.forEach((b, i) => { b.index = i + 1; });
+      return buildSRT(dual);
+    }
+
+    // ── Section 2: Translate ──
+    async function doTranslate() {
+      if (!originalSrt) {
+        showStatus('请先导入 SRT 文件或粘贴内容', 'error');
+        return;
+      }
+
+      const blocks = parseSRT(originalSrt);
+      if (blocks.length === 0) {
+        showStatus('无法解析 SRT 内容，请检查格式', 'error');
+        return;
+      }
+
+      const translateBtn = document.getElementById('translateBtn');
+      const progressDiv = document.getElementById('translateProgress');
+      const resultDiv = document.getElementById('translateResult');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+
+      translateBtn.disabled = true;
+      translateBtn.textContent = '翻译中...';
+      progressDiv.style.display = 'block';
+      resultDiv.style.display = 'none';
+      progressFill.style.width = '0%';
+      progressText.textContent = '正在翻译 ' + blocks.length + ' 条字幕...';
+
+      // Simulate progress while waiting
+      let progressInterval = setInterval(() => {
+        const w = parseFloat(progressFill.style.width) || 0;
+        if (w < 90) {
+          progressFill.style.width = Math.min(w + Math.random() * 8, 90) + '%';
+        }
+      }, 600);
+
+      const source = document.getElementById('sourceLang').value;
+      const target = document.getElementById('targetLang').value;
+
+      try {
+        const resp = await fetch('/api/message-board/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ srt: originalSrt, source, target }),
+        });
+
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+
+        const data = await resp.json();
+
+        if (!data.success) {
+          showStatus('翻译失败: ' + (data.error || '未知错误'), 'error');
+          progressDiv.style.display = 'none';
+          translateBtn.disabled = false;
+          translateBtn.textContent = '🤖 开始翻译';
+          return;
+        }
+
+        // Convert to dual-track
+        translatedSrt = toDualTrack(data.data.srt);
+        const translatedCount = data.data.translated || 0;
+
+        // Render preview
+        const previewDiv = document.getElementById('bilingualPreview');
+        const blocks2 = parseSRT(translatedSrt);
+        let html = '';
+        for (let i = 0; i < blocks2.length; i++) {
+          const b = blocks2[i];
+          if (b.index !== null) {
+            const isTranslation = (i % 2 === 1);
+            const color = isTranslation ? 'var(--cyan)' : 'var(--text)';
+            const tag = isTranslation ? '🌐' : '📝';
+            html += '<div class="preview-entry">';
+            html += '<span class="preview-meta">#' + b.index + '  ' + escHtml(b.timecode) + ' <span style="color:' + color + '">' + tag + '</span></span><br>';
+            html += '<span style="color:' + color + ';">' + escHtml(b.text) + '</span>';
+            html += '</div>';
+          }
+        }
+        previewDiv.innerHTML = html || '<span style="color:#6b7d99;">(空)</span>';
+
+        progressDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+        translateBtn.textContent = '✅ 翻译完成';
+
+        showStatus(
+          '翻译完成！原 ' + data.data.total + ' 条 → 双轨道 ' + blocks2.length + ' 条（📝 原文 + 🌐 译文）',
+          'success'
+        );
+
+        // Show final result in section 4
+        updateFinalResult(translatedSrt);
+
+        // Scroll to preview
+        document.getElementById('secTranslate').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      } catch (e) {
+        clearInterval(progressInterval);
+        showStatus('网络错误: ' + e.message, 'error');
+        progressDiv.style.display = 'none';
+        translateBtn.disabled = false;
+        translateBtn.textContent = '🤖 开始翻译';
+      }
+    }
+
+    // ── Section 3: Replace Rules ──
+    function checkDuplicate() {
+      const val = document.getElementById('newFrom').value.trim();
+      const hint = document.getElementById('duplicateHint');
+      const addBtn = document.getElementById('addBtn');
+      if (!val) { hint.style.display = 'none'; addBtn.style.opacity = '1'; return; }
+      const rules = loadRules();
+      const exist = rules.find(r => r.from === val);
+      if (exist) {
+        hint.textContent = '⚠️ 已存在: ' + val + ' → ' + (exist.to || '(空)');
+        hint.style.display = 'block';
+        addBtn.style.opacity = '0.5';
+      } else {
+        hint.style.display = 'none';
+        addBtn.style.opacity = '1';
+      }
+    }
+
+    function renderRules() {
+      const rules = loadRules();
+      const search = (document.getElementById('ruleSearch').value || '').trim().toLowerCase();
+      const filtered = search
+        ? rules.filter(r => r.from.toLowerCase().includes(search) || r.to.toLowerCase().includes(search))
+        : rules;
+
+      document.getElementById('ruleCount').textContent = '(' + rules.length + ')';
+
+      const list = document.getElementById('rulesList');
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty-hint">' + (search ? '无匹配规则' : '暂无替换规则，请在上方添加') + '</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map(r => {
+        const i = rules.indexOf(r);
+        return `
+        <div class="rule-item" draggable="true" data-index="${i}"
+             ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="rule-from" title="原文">${escHtml(r.from)}</span>
+          <span class="rule-arrow">→</span>
+          <span class="rule-to" title="替换为">${escHtml(r.to)}</span>
+          <div class="rule-actions">
+            <button class="btn-danger btn-small" onclick="removeRule(${i})">删除</button>
+          </div>
+        </div>
+      `}).join('');
+    }
+
+    function addRule() {
+      const from = document.getElementById('newFrom').value.trim();
+      const to = document.getElementById('newTo').value;
+      if (!from) { alert('请输入原文'); return; }
+      const rules = loadRules();
+      if (rules.some(r => r.from === from)) {
+        alert('"' + from + '" 已存在，请先删除旧规则');
+        return;
+      }
+      rules.push({ from, to: to || '' });
+      saveRules(rules);
+      renderRules();
+      document.getElementById('newFrom').value = '';
+      document.getElementById('newTo').value = '';
+    }
+
+    function removeRule(index) {
+      const rules = loadRules();
+      rules.splice(index, 1);
+      saveRules(rules);
+      renderRules();
+    }
+
+    let dragIndex = null;
+
+    function dragStart(e) {
+      dragIndex = +e.currentTarget.dataset.index;
+      e.currentTarget.style.opacity = '0.4';
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+      e.currentTarget.style.borderTop = '2px solid var(--cyan)';
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      e.currentTarget.style.borderTop = '';
+      const dropIndex = +e.currentTarget.dataset.index;
+      if (dragIndex === null || dragIndex === dropIndex) return;
+      const rules = loadRules();
+      const moved = rules.splice(dragIndex, 1)[0];
+      rules.splice(dropIndex, 0, moved);
+      saveRules(rules);
+      renderRules();
+    }
+
+    function dragEnd(e) {
+      e.currentTarget.style.opacity = '';
+      document.querySelectorAll('.rule-item').forEach(el => el.style.borderTop = '');
+      dragIndex = null;
+    }
+
+    function exportRules() {
+      const rules = loadRules();
+      if (rules.length === 0) { alert('词表为空'); return; }
+      const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'srt_pipeline_rules.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importRules() {
+      document.getElementById('importRuleInput').click();
+    }
+
+    function handleRuleImport(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!Array.isArray(imported)) throw new Error('格式错误');
+          const existing = loadRules();
+          const existingFroms = new Set(existing.map(r => r.from));
+          let added = 0;
+          imported.forEach(r => {
+            if (r.from && !existingFroms.has(r.from)) {
+              existing.push({ from: r.from, to: r.to || '' });
+              added++;
+            }
+          });
+          saveRules(existing);
+          renderRules();
+          alert('导入完成，新增 ' + added + ' 条规则');
+        } catch (err) {
+          alert('导入失败: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    // ── Section 3: Execute Replace ──
+    function escRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function doReplace() {
+      const src = translatedSrt || originalSrt;
+      if (!src) {
+        showStatus('请先完成翻译', 'error');
+        return;
+      }
+
+      const rules = loadRules();
+      if (rules.length === 0) {
+        replacedSrt = translatedSrt || originalSrt;
+        updateFinalResult(replacedSrt);
+        document.getElementById('replaceStats').style.display = 'flex';
+        document.getElementById('replaceCount').textContent = '0';
+        document.getElementById('matchedRules').textContent = '0';
+        showStatus('无替换规则，已直接输出翻译结果', 'info');
+        document.getElementById('secExport').scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+
+      const blocks = parseSRT(src);
+      let totalReplaced = 0;
+      const matchedRuleSet = new Set();
+
+      const pattern = rules.map(r => escRegex(r.from)).join('|');
+      const regex = new RegExp(pattern, 'g');
+
+      const replacedBlocks = blocks.map(b => {
+        let text = b.text;
+        text = text.replace(regex, match => {
+          for (const rule of rules) {
+            if (match === rule.from) {
+              totalReplaced++;
+              matchedRuleSet.add(rule.from);
+              return rule.to;
+            }
+          }
+          return match;
+        });
+        return { ...b, text };
+      });
+
+      replacedSrt = buildSRT(replacedBlocks);
+
+      document.getElementById('replaceStats').style.display = 'flex';
+      document.getElementById('replaceCount').textContent = totalReplaced;
+      document.getElementById('matchedRules').textContent = matchedRuleSet.size;
+
+      updateFinalResult(replacedSrt);
+
+      if (totalReplaced > 0) {
+        showStatus('替换完成！共替换 ' + totalReplaced + ' 处，匹配 ' + matchedRuleSet.size + ' 条规则', 'success');
+      } else {
+        showStatus('未匹配到任何替换规则', 'info');
+      }
+
+      document.getElementById('secExport').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateFinalResult(srt) {
+      document.getElementById('finalResult').textContent = srt;
+      document.getElementById('finalResult').className = 'result-box';
+      const blocks = parseSRT(srt);
+      document.getElementById('finalBlocks').textContent = blocks.length;
+      document.getElementById('finalChars').textContent = srt.length;
+    }
+
+    // ── Section 4: Export ──
+    function downloadResult() {
+      const content = replacedSrt || translatedSrt || originalSrt;
+      if (!content) { alert('没有可下载的内容'); return; }
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      if (originalFileName) {
+        const dot = originalFileName.lastIndexOf('.');
+        a.download = dot > -1
+          ? originalFileName.slice(0, dot) + '_processed' + originalFileName.slice(dot)
+          : originalFileName + '_processed.srt';
+      } else {
+        a.download = 'processed.srt';
+      }
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copyResult() {
+      const content = replacedSrt || translatedSrt || originalSrt;
+      if (!content) return;
+      navigator.clipboard.writeText(content).then(() => {
+        showStatus('已复制到剪贴板！', 'success');
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = content;
+        ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showStatus('已复制到剪贴板！', 'success');
+      });
+    }
+
+    // ── Helpers ──
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ── Keyboard shortcuts ──
+    document.getElementById('newFrom').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        if (!document.getElementById('newTo').value) {
+          document.getElementById('newTo').focus();
+        } else {
+          addRule();
+        }
+      }
+    });
+    document.getElementById('newTo').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addRule();
+    });
+
+    // ── Init ──
+    renderRules();
+  </script>
+  <script src="/assets/counter.js" defer></script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

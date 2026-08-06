@@ -1,0 +1,11 @@
+{
+  "id": "rainbow-fart",
+  "name": "彩虹屁生成器",
+  "description": "程序员专属彩虹屁，夸人也能这么专业",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["fun"],
+  "tags": ["彩虹屁", "夸人", "趣味", "程序员"],
+  "features": ["随机彩虹屁", "程序员风格", "一键复制"]
+}

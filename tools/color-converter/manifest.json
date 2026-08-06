@@ -1,0 +1,11 @@
+{
+  "id": "color-converter",
+  "name": "颜色转换器",
+  "description": "HEX、RGB、HSL 颜色互转",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev", "convert"],
+  "tags": ["颜色", "HEX", "RGB", "HSL", "转换"],
+  "features": ["HEX转RGB", "RGB转HEX", "HSL转换", "颜色预览"]
+}

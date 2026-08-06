@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>密码强度检测 - Chaotools</title>
+<style>
+:root{--bg:#0a0e17;--surface:#111a2e;--border:rgba(56,189,248,.08);--border-hover:rgba(56,189,248,.2);--cyan:#38bdf8;--cyan-dim:rgba(56,189,248,.08);--text:#e2e8f0;--text-dim:#7f8ea3;--radius:12px;--red:#ef4444;--orange:#f59e0b;--yellow:#eab308;--green:#34d399}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:560px;margin:0 auto;padding:60px 20px 40px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--text-dim);text-decoration:none;font-size:14px;margin-bottom:20px;transition:color .2s}
+.back:hover{color:var(--brand, var(--cyan))}
+h1{font-size:28px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:var(--text-dim);font-size:14px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.input-wrap{display:flex;gap:10px;margin-bottom:20px}
+.input-wrap input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;padding:12px 14px;outline:none;font-family:monospace;letter-spacing:2px;transition:border-color .2s}
+.input-wrap input:focus{border-color:var(--brand, var(--cyan))}
+.bar-wrap{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:8px}
+.bar{height:100%;border-radius:4px;transition:all .3s ease;width:0%}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.stat-val{font-size:20px;font-weight:700;margin-bottom:2px}
+.stat-lbl{font-size:12px;color:var(--text-dim)}
+.checks{list-style:none}
+.checks li{padding:8px 0;display:flex;align-items:center;gap:10px;font-size:14px;border-bottom:1px solid var(--border)}
+.checks li:last-child{border-bottom:none}
+.check-icon{width:20px;text-align:center;font-size:16px}
+.pass{color:var(--green)}.fail{color:var(--text-dim)}
+.btn{background:var(--brand, var(--cyan));color:#0a0e17;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;white-space:nowrap}
+.btn:hover{opacity:.85}
+@media(max-width:480px){.container{padding:40px 16px 30px}.stats{grid-template-columns:1fr}}
+</style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+<div class="container"><h1>&#128170; 密码强度检测</h1>
+<p class="subtitle">实时评估密码强度，了解破解难度</p>
+<div class="card">
+<div class="input-wrap">
+<input type="text" id="pwdInput" placeholder="输入密码..." autocomplete="off" spellcheck="false">
+<button class="btn" id="genBtn">生成</button>
+</div>
+<div class="bar-wrap"><div class="bar" id="strengthBar"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:13px">
+<span id="strengthLabel" style="color:var(--text-dim)">等待输入&hellip;</span>
+<span id="crackTime" style="color:var(--text-dim)"></span>
+</div>
+<div class="stats" id="stats">
+<div class="stat"><div class="stat-val" id="lenVal">0</div><div class="stat-lbl">长度</div></div>
+<div class="stat"><div class="stat-val" id="charVal">-</div><div class="stat-lbl">字符类型</div></div>
+<div class="stat"><div class="stat-val" id="entropyVal">0</div><div class="stat-lbl">熵值 (bit)</div></div>
+<div class="stat"><div class="stat-val" id="scoreVal">0</div><div class="stat-lbl">评分</div></div>
+</div>
+<ul class="checks" id="checks"></ul>
+</div></div>
+<script>
+var pwd = document.getElementById('pwdInput');
+var bar = document.getElementById('strengthBar');
+var label = document.getElementById('strengthLabel');
+var crackTime = document.getElementById('crackTime');
+var lenVal = document.getElementById('lenVal');
+var charVal = document.getElementById('charVal');
+var entropyVal = document.getElementById('entropyVal');
+var scoreVal = document.getElementById('scoreVal');
+var checks = document.getElementById('checks');
+var genBtn = document.getElementById('genBtn');
+
+function analyze(s) {
+  var r = {};
+  r.len = s.length;
+  r.hasLower = /[a-z]/.test(s);
+  r.hasUpper = /[A-Z]/.test(s);
+  r.hasDigit = /\d/.test(s);
+  r.hasSpecial = /[^a-zA-Z0-9]/.test(s);
+  r.hasSpace = /\s/.test(s);
+  
+  r.charTypes = 0;
+  if (r.hasLower) r.charTypes++;
+  if (r.hasUpper) r.charTypes++;
+  if (r.hasDigit) r.charTypes++;
+  if (r.hasSpecial) r.charTypes++;
+  
+  var pool = 0;
+  if (r.hasLower) pool += 26;
+  if (r.hasUpper) pool += 26;
+  if (r.hasDigit) pool += 10;
+  if (r.hasSpecial) pool += 33;
+  
+  r.entropy = s.length > 0 ? Math.round(s.length * Math.log2(pool || 1)) : 0;
+  
+  var score = 0;
+  if (s.length >= 8) score += 15;
+  if (s.length >= 12) score += 15;
+  if (s.length >= 16) score += 10;
+  if (r.hasLower && r.hasUpper) score += 15;
+  if (r.hasDigit) score += 10;
+  if (r.hasSpecial) score += 15;
+  if (r.charTypes >= 3) score += 10;
+  if (s.length > 0 && r.charTypes <= 1) score = Math.min(score, 20);
+  r.score = Math.min(100, score);
+  
+  if (r.entropy < 28) {
+    r.levelName = '极弱';
+    r.color = 'var(--red)';
+    r.barColor = '#ef4444';
+    r.width = 10;
+  } else if (r.entropy < 36) {
+    r.levelName = '弱';
+    r.color = 'var(--orange)';
+    r.barColor = '#f59e0b';
+    r.width = 30;
+  } else if (r.entropy < 60) {
+    r.levelName = '中等';
+    r.color = 'var(--yellow)';
+    r.barColor = '#eab308';
+    r.width = 55;
+  } else if (r.entropy < 80) {
+    r.levelName = '强';
+    r.color = 'var(--green)';
+    r.barColor = '#34d399';
+    r.width = 75;
+  } else {
+    r.levelName = '极强';
+    r.color = 'var(--green)';
+    r.barColor = '#10b981';
+    r.width = 100;
+  }
+  
+  var p = Math.pow(2, r.entropy - 1);
+  var y = p / 31557600;
+  var crack;
+  if (y < 1/3600) crack = '即时';
+  else if (y < 1) crack = Math.round(y * 3600) + '秒';
+  else if (y < 24) crack = Math.round(y) + '小时';
+  else if (y < 365) crack = Math.round(y) + '天';
+  else if (y < 1e6) crack = (y/365).toFixed(1) + '年';
+  else crack = '> 100万年';
+  r.crackTime = crack;
+  
+  return r;
+}
+
+function update() {
+  var s = pwd.value.trim();
+  if (!s) {
+    bar.style.width = '0%';
+    bar.style.background = '';
+    label.textContent = '等待输入...';
+    label.style.color = '';
+    crackTime.textContent = '';
+    lenVal.textContent = '0';
+    charVal.textContent = '-';
+    entropyVal.textContent = '0';
+    scoreVal.textContent = '0';
+    checks.innerHTML = '';
+    return;
+  }
+  
+  var r = analyze(s);
+  bar.style.width = r.width + '%';
+  bar.style.background = r.barColor;
+  label.textContent = r.levelName;
+  label.style.color = r.color;
+  crackTime.textContent = '破解耗时: ' + r.crackTime;
+  crackTime.style.color = r.color;
+  lenVal.textContent = r.len;
+  charVal.textContent = r.charTypes + '种';
+  entropyVal.textContent = r.entropy;
+  scoreVal.textContent = r.score;
+  
+  var html = '';
+  html += '<li class="' + (r.len >= 8 ? 'pass' : 'fail') + '"><span class="check-icon">' + (r.len >= 8 ? '&#10004;' : '&#10008;') + '</span>至少 8 位 (' + r.len + ')</li>';
+  html += '<li class="' + (r.hasLower && r.hasUpper ? 'pass' : 'fail') + '"><span class="check-icon">' + (r.hasLower && r.hasUpper ? '&#10004;' : '&#10008;') + '</span>大小写混合</li>';
+  html += '<li class="' + (r.hasDigit ? 'pass' : 'fail') + '"><span class="check-icon">' + (r.hasDigit ? '&#10004;' : '&#10008;') + '</span>包含数字</li>';
+  html += '<li class="' + (r.hasSpecial ? 'pass' : 'fail') + '"><span class="check-icon">' + (r.hasSpecial ? '&#10004;' : '&#10008;') + '</span>包含特殊字符</li>';
+  html += '<li class="' + (r.hasSpace ? 'pass' : 'fail') + '"><span class="check-icon">' + (r.hasSpace ? '&#10004;' : '&#10008;') + '</span>包含空格</li>';
+  checks.innerHTML = html;
+}
+
+pwd.addEventListener('input', update);
+genBtn.addEventListener('click', function() {
+  var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+  var result = '';
+  for (var i = 0; i < 20; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  pwd.value = result;
+  update();
+});
+</script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "id": "qrcode-generator",
+  "name": "二维码生成器",
+  "description": "输入文本或链接，一键生成二维码并下载 PNG",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["二维码", "QRCode", "生成器"],
+  "features": ["文本转二维码", "下载PNG", "实时预览"]
+}

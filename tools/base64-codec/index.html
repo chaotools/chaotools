@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 编解码 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      min-width: 140px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--brand, var(--cyan));
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .options {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 16px;
+    }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .option-label input {
+      width: auto;
+      accent-color: var(--brand, var(--cyan));
+    }
+
+    .output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .output.error {
+      color: #ff4757;
+    }
+
+    .output.success {
+      color: var(--brand, var(--cyan));
+    }
+
+    .copy-btn {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      color: var(--brand, var(--cyan));
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>🔐 Base64 编解码</h1>
+    <p class="desc">标准 Base64 / URL-safe 模式切换</p>
+
+    <div class="card">
+      <label>输入文本</label>
+      <textarea id="input" placeholder="输入要编码或解码的内容..."></textarea>
+
+      <div class="options">
+        <label class="option-label">
+          <input type="checkbox" id="urlSafe">
+          <span>URL-safe 模式</span>
+        </label>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" onclick="encode()">🔐 编码 → Base64</button>
+        <button class="btn-secondary" onclick="decode()">🔓 解码 ← Base64</button>
+      </div>
+
+      <label>输出结果</label>
+      <div id="output" class="output">等待输入...</div>
+      <span class="copy-btn" onclick="copyOutput()">📋 点击复制结果</span>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    const urlSafe = document.getElementById('urlSafe');
+
+    function encode() {
+      const text = input.value;
+      if (!text) {
+        showOutput('请输入要编码的内容', 'error');
+        return;
+      }
+
+      try {
+        const encoded = btoa(unescape(encodeURIComponent(text)));
+        const result = urlSafe.checked ? encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : encoded;
+        showOutput(result, 'success');
+      } catch (e) {
+        showOutput('❌ 编码失败: ' + e.message, 'error');
+      }
+    }
+
+    function decode() {
+      const text = input.value.trim();
+      if (!text) {
+        showOutput('请输入要解码的 Base64 字符串', 'error');
+        return;
+      }
+
+      try {
+        let normalized = text;
+        if (urlSafe.checked) {
+          normalized = text.replace(/-/g, '+').replace(/_/g, '/');
+          // 补齐 padding
+          while (normalized.length % 4) normalized += '=';
+        }
+
+        const decoded = decodeURIComponent(escape(atob(normalized)));
+        showOutput(decoded, 'success');
+      } catch (e) {
+        showOutput('❌ 解码失败，请确认输入是有效的 Base64 字符串', 'error');
+      }
+    }
+
+    function showOutput(text, type) {
+      output.textContent = text;
+      output.className = 'output ' + type;
+    }
+
+    function copyOutput() {
+      const text = output.textContent;
+      if (text && !text.startsWith('等待') && !text.startsWith('❌') && !text.startsWith('请')) {
+        navigator.clipboard.writeText(text);
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✅ 已复制!';
+        setTimeout(() => btn.textContent = '📋 点击复制结果', 1500);
+      }
+    }
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

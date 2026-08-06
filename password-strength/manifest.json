@@ -1,0 +1,11 @@
+{
+  "id": "password-strength",
+  "name": "密码强度检测",
+  "description": "实时评估密码强度，估算破解时长，支持生成强密码",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["密码", "安全", "强度检测", "生成器"],
+  "features": ["实时评估", "破解时长估算", "强密码生成"]
+}

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRT 批量替换 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+      --red: #ff4757;
+      --yellow: #ffa502;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--cyan);
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-dim);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--cyan);
+    }
+
+    textarea::placeholder {
+      color: var(--text-dim);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--cyan);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--cyan);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .btn-danger:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-small {
+      padding: 6px 14px;
+      font-size: 13px;
+    }
+
+    .rules-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .rules-header label {
+      margin-bottom: 0;
+    }
+
+    .add-rule-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    .add-rule-row input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .add-rule-row input:focus {
+      border-color: var(--cyan);
+    }
+
+    .add-rule-row input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .rules-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .rule-item:last-child {
+      border-bottom: none;
+    }
+
+    .rule-from {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--yellow);
+      min-width: 80px;
+      word-break: break-all;
+    }
+
+    .rule-arrow {
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .rule-to {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--cyan);
+      flex: 1;
+      word-break: break-all;
+    }
+
+    .rule-actions {
+      flex-shrink: 0;
+      display: flex;
+      gap: 6px;
+    }
+
+    .empty-hint {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: var(--cyan);
+      background: rgba(56, 189, 248, 0.03);
+    }
+
+    .upload-area p {
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .upload-area .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .result-area {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .result-area.empty {
+      color: var(--text-dim);
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-dim);
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-value {
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .copy-hint {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    .copy-hint:hover {
+      color: var(--cyan);
+    }
+
+    .export-import {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>📝 SRT 批量替换</h1>
+    <p class="desc">上传或粘贴 SRT 字幕文件，批量替换敏感词，一键下载结果</p>
+
+    <div class="card">
+      <div class="rules-header">
+        <label>📋 替换词表 <span id="ruleCount" style="color:var(--cyan);font-weight:400;">(0)</span></label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="syncCode" placeholder="同步码（如 myrules）" style="width:120px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;outline:none">
+          <button class="btn-secondary btn-small" onclick="syncLoad()" style="font-size:11px;padding:4px 8px;">📥 拉取</button>
+          <button class="btn-secondary btn-small" onclick="syncSave()" style="font-size:11px;padding:4px 8px;">📤 推送</button>
+          <span id="syncStatus" style="font-size:11px;color:var(--text-dim);"></span>
+          <button class="btn-secondary btn-small" onclick="exportRules()">导出</button>
+          <button class="btn-secondary btn-small" onclick="importRules()">导入</button>
+        </div>
+      </div>
+
+      <div class="add-rule-row">
+        <input type="text" id="newFrom" placeholder="原文（如：杀）" oninput="checkDuplicate()">
+        <span style="color: var(--text-dim)">→</span>
+        <input type="text" id="newTo" placeholder="替换为（如：沙）">
+        <button class="btn-primary btn-small" id="addBtn" onclick="addRule()">➕ 添加</button>
+      </div>
+      <p id="duplicateHint" style="display:none;font-size:12px;margin:-8px 0 6px;padding:4px 10px;background:rgba(255,165,2,.1);border-radius:4px;color:var(--yellow);"></p>
+
+      <input type="text" id="ruleSearch" placeholder="🔍 搜索规则..." style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:8px;outline:none" oninput="renderRules()">
+
+      <div id="rulesList" class="rules-list">
+        <div class="empty-hint">暂无替换规则，请在上方添加</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>📂 输入 SRT</label>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">📁</div>
+        <p>点击上传 SRT 文件，或拖拽到此处</p>
+        <p style="font-size: 12px; margin-top: 4px;">也支持直接粘贴文本</p>
+      </div>
+      <input type="file" id="fileInput" accept=".srt,.txt" onchange="handleFile(event)">
+
+      <textarea id="input" placeholder="或直接粘贴 SRT 内容..." spellcheck="false"></textarea>
+
+      <div class="btn-group">
+        <button class="btn-primary" onclick="doReplace()">🔄 执行替换</button>
+        <button class="btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+        <button class="btn-secondary" onclick="downloadResult()">💾 下载结果</button>
+      </div>
+
+      <label>📄 替换结果</label>
+      <div id="result" class="result-area empty">等待执行替换...</div>
+      <p class="copy-hint" onclick="copyResult()">📋 点击复制结果</p>
+
+      <div class="stats">
+        <span class="stat">替换次数: <span id="replaceCount" class="stat-value">0</span></span>
+        <span class="stat">总字数: <span id="totalChars" class="stat-value">0</span></span>
+        <span class="stat">匹配规则: <span id="matchedRules" class="stat-value">0</span></span>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="importInput" accept=".json" style="display:none" onchange="handleImport(event)">
+
+  <script>
+    const STORAGE_KEY = 'srt_replace_rules';
+
+    function loadRules() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function saveRules(rules) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rules));
+    }
+
+    // ── 同步功能 ──
+    const SYNC_API = '/api/message-board/sync-rules';
+
+    function getSyncCode() {
+      return (document.getElementById('syncCode').value || '').trim();
+    }
+
+    function setSyncStatus(msg, ok) {
+      const el = document.getElementById('syncStatus');
+      el.textContent = msg;
+      el.style.color = ok === false ? 'var(--red)' : ok ? 'var(--cyan)' : 'var(--text-dim)';
+    }
+
+    async function syncSave() {
+      const code = getSyncCode();
+      if (code.length < 3) { alert('请先输入同步码（至少3位）'); return; }
+      const rules = loadRules();
+      if (rules.length === 0) { alert('词表为空，无需推送'); return; }
+      setSyncStatus('推送中...');
+      try {
+        const resp = await fetch(SYNC_API + '/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, rules }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+          setSyncStatus('✅ 已同步', true);
+          setTimeout(() => setSyncStatus(''), 3000);
+        } else {
+          setSyncStatus('❌ ' + (data.error || '失败'), false);
+        }
+      } catch (e) {
+        setSyncStatus('❌ 网络错误', false);
+      }
+    }
+
+    async function syncLoad() {
+      const code = getSyncCode();
+      if (code.length < 3) { alert('请先输入同步码（至少3位）'); return; }
+      setSyncStatus('加载中...');
+      try {
+        const resp = await fetch(SYNC_API + '/load?code=' + encodeURIComponent(code));
+        const data = await resp.json();
+        if (data.success) {
+          if (data.rules.length === 0) {
+            setSyncStatus('📭 服务端无数据', false);
+          } else {
+            saveRules(data.rules);
+            renderRules();
+            setSyncStatus('✅ 已拉取 ' + data.rules.length + ' 条', true);
+            setTimeout(() => setSyncStatus(''), 3000);
+          }
+        } else {
+          setSyncStatus('❌ ' + (data.error || '失败'), false);
+        }
+      } catch (e) {
+        setSyncStatus('❌ 网络错误', false);
+      }
+    }
+
+    // 同步码记住到 localStorage
+    const SYNC_CODE_KEY = 'srt_sync_code';
+    const savedCode = localStorage.getItem(SYNC_CODE_KEY);
+    if (savedCode) document.getElementById('syncCode').value = savedCode;
+    document.getElementById('syncCode').addEventListener('input', function() {
+      localStorage.setItem(SYNC_CODE_KEY, this.value);
+    });
+    // ── 同步功能结束 ──
+
+    function checkDuplicate() {
+      const val = document.getElementById('newFrom').value.trim();
+      const hint = document.getElementById('duplicateHint');
+      const addBtn = document.getElementById('addBtn');
+      if (!val) { hint.style.display = 'none'; addBtn.style.opacity = '1'; return; }
+      const rules = loadRules();
+      const exist = rules.find(r => r.from === val);
+      if (exist) {
+        hint.textContent = '⚠️ 已存在: ' + val + ' → ' + (exist.to || '(空)');
+        hint.style.display = 'block';
+        addBtn.style.opacity = '0.5';
+      } else {
+        hint.style.display = 'none';
+        addBtn.style.opacity = '1';
+      }
+    }
+
+    function renderRules() {
+      const rules = loadRules();
+      const search = (document.getElementById('ruleSearch').value || '').trim().toLowerCase();
+      const filtered = search ? rules.filter(r => r.from.toLowerCase().includes(search) || r.to.toLowerCase().includes(search)) : rules;
+
+      document.getElementById('ruleCount').textContent = '(' + rules.length + ')';
+
+      const list = document.getElementById('rulesList');
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty-hint">' + (search ? '无匹配规则' : '暂无替换规则，请在上方添加') + '</div>';
+        return;
+      }
+      list.innerHTML = filtered.map(r => {
+        // 在原始 rules 中找索引，用于删除操作
+        const i = rules.indexOf(r);
+        return `
+        <div class="rule-item" draggable="true" data-index="${i}"
+             ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+          <span class="rule-from" title="原文">${escHtml(r.from)}</span>
+          <span class="rule-arrow">→</span>
+          <span class="rule-to" title="替换为">${escHtml(r.to)}</span>
+          <div class="rule-actions">
+            <button class="btn-danger btn-small" onclick="removeRule(${i})">删除</button>
+          </div>
+        </div>
+      `}).join('');
+    }
+
+    function addRule() {
+      const from = document.getElementById('newFrom').value.trim();
+      const to = document.getElementById('newTo').value;
+      if (!from) { alert('请输入原文'); return; }
+      const rules = loadRules();
+      if (rules.some(r => r.from === from)) {
+        alert('"' + from + '" 已存在，请先删除旧规则');
+        return;
+      }
+      rules.push({ from, to: to || '' });
+      saveRules(rules);
+      renderRules();
+      document.getElementById('newFrom').value = '';
+      document.getElementById('newTo').value = '';
+    }
+
+    function removeRule(index) {
+      const rules = loadRules();
+      rules.splice(index, 1);
+      saveRules(rules);
+      renderRules();
+    }
+
+    let dragIndex = null;
+
+    function dragStart(e) {
+      dragIndex = +e.currentTarget.dataset.index;
+      e.currentTarget.style.opacity = '0.4';
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+      e.currentTarget.style.borderTop = '2px solid var(--cyan)';
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      e.currentTarget.style.borderTop = '';
+      const dropIndex = +e.currentTarget.dataset.index;
+      if (dragIndex === null || dragIndex === dropIndex) return;
+      const rules = loadRules();
+      const moved = rules.splice(dragIndex, 1)[0];
+      rules.splice(dropIndex, 0, moved);
+      saveRules(rules);
+      renderRules();
+    }
+
+    function dragEnd(e) {
+      e.currentTarget.style.opacity = '';
+      document.querySelectorAll('.rule-item').forEach(el => el.style.borderTop = '');
+      dragIndex = null;
+    }
+
+    function exportRules() {
+      const rules = loadRules();
+      if (rules.length === 0) { alert('词表为空'); return; }
+      const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'srt_replace_rules.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importRules() {
+      document.getElementById('importInput').click();
+    }
+
+    function handleImport(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!Array.isArray(imported)) throw new Error('格式错误');
+          const existing = loadRules();
+          const existingFroms = new Set(existing.map(r => r.from));
+          let added = 0;
+          imported.forEach(r => {
+            if (r.from && !existingFroms.has(r.from)) {
+              existing.push({ from: r.from, to: r.to || '' });
+              added++;
+            }
+          });
+          saveRules(existing);
+          renderRules();
+          alert('导入完成，新增 ' + added + ' 条规则');
+        } catch (err) {
+          alert('导入失败: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function escRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function doReplace() {
+      const input = document.getElementById('input').value.trim();
+      if (!input) { alert('请先输入 SRT 内容'); return; }
+      const rules = loadRules();
+      if (rules.length === 0) { alert('请先添加替换规则'); return; }
+
+      // 解析 SRT 块，只替换字幕文本，保护时间轴和序号
+      const blocks = input.split(/\n\s*\n/);
+      let totalReplaced = 0;
+      const matchedRuleSet = new Set();
+
+      const replacedBlocks = blocks.map(raw => {
+        const lines = raw.trim().split('\n');
+        if (lines.length < 3) return raw; // 不是有效字幕块，保持原样
+
+        // lines[0] = 序号, lines[1] = 时间轴, lines[2+] = 字幕文本
+        const meta = lines.slice(0, 2);
+        const textLines = lines.slice(2);
+        let text = textLines.join('\n');
+
+        // 单次遍历替换：构建正则，一次性匹配所有规则，避免链式覆盖
+        // 按规则顺序，匹配时取第一个命中的规则
+        const pattern = rules.map(r => escRegex(r.from)).join('|');
+        const regex = new RegExp(pattern, 'g');
+
+        text = text.replace(regex, match => {
+          for (const rule of rules) {
+            if (match === rule.from) {
+              totalReplaced++;
+              matchedRuleSet.add(rule.from);
+              return rule.to;
+            }
+          }
+          return match; // 兜底
+        });
+
+        return [...meta, text].join('\n');
+      });
+
+      const result = replacedBlocks.join('\n\n');
+      document.getElementById('result').textContent = result;
+      document.getElementById('result').className = 'result-area';
+      document.getElementById('replaceCount').textContent = totalReplaced;
+      document.getElementById('totalChars').textContent = result.length;
+      document.getElementById('matchedRules').textContent = matchedRuleSet.size;
+    }
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      originalFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        document.getElementById('input').value = ev.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    const uploadArea = document.getElementById('uploadArea');
+    uploadArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        originalFileName = file.name;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          document.getElementById('input').value = ev.target.result;
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    let originalFileName = null;
+
+    function downloadResult() {
+      const result = document.getElementById('result').textContent;
+      if (!result || result === '等待执行替换...') { alert('请先执行替换'); return; }
+      const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      if (originalFileName) {
+        const dot = originalFileName.lastIndexOf('.');
+        a.download = dot > -1
+          ? originalFileName.slice(0, dot) + '_替换' + originalFileName.slice(dot)
+          : originalFileName + '_替换.srt';
+      } else {
+        a.download = 'replaced.srt';
+      }
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearAll() {
+      document.getElementById('input').value = '';
+      document.getElementById('result').textContent = '等待执行替换...';
+      document.getElementById('result').className = 'result-area empty';
+      document.getElementById('replaceCount').textContent = '0';
+      document.getElementById('totalChars').textContent = '0';
+      document.getElementById('matchedRules').textContent = '0';
+    }
+
+    function copyResult() {
+      const text = document.getElementById('result').textContent;
+      if (!text || text === '等待执行替换...') return;
+      navigator.clipboard.writeText(text).then(() => {
+        const hint = document.querySelector('.copy-hint');
+        hint.textContent = '✅ 已复制！';
+        setTimeout(() => { hint.textContent = '📋 点击复制结果'; }, 1500);
+      });
+    }
+
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    document.getElementById('newFrom').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        if (!document.getElementById('newTo').value) {
+          document.getElementById('newTo').focus();
+        } else {
+          addRule();
+        }
+      }
+    });
+    document.getElementById('newTo').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addRule();
+    });
+
+    renderRules();
+  </script>
+<script src="/assets/counter.js" defer></script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

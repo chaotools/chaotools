@@ -1,0 +1,11 @@
+{
+  "id": "image-to-base64",
+  "name": "图片转 Base64",
+  "description": "拖入或选择图片，一键转换为 Base64 Data URL",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["图片", "Base64", "编码", "转换"],
+  "features": ["拖拽上传", "一键转换", "复制Data URL"]
+}

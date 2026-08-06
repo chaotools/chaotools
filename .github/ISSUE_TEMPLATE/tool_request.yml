@@ -1,0 +1,50 @@
+name: 🛠️ 工具请求
+description: 请求添加新工具到 Chaotools
+title: "[Tool Request] "
+labels: ["tool-request"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 工具请求
+
+        请描述你想要添加的工具。
+
+  - type: input
+    id: tool-name
+    attributes:
+      label: 工具名称
+      description: 你想要的中文名称
+      placeholder: "例如: JSON 格式化"
+    validations:
+      required: true
+
+  - type: input
+    id: tool-description
+    attributes:
+      label: 工具描述
+      description: 工具的主要功能
+      placeholder: "这个工具做什么？"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 分类
+      description: 工具属于哪个分类
+      options:
+        - 开发工具 (dev)
+        - 趣味工具 (fun)
+        - 转换工具 (convert)
+        - 文本处理 (text)
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 使用场景
+      description: 你在什么情况下会使用这个工具？
+      placeholder: "描述你的使用场景..."

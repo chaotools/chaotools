@@ -1,0 +1,11 @@
+{
+  "id": "regex-tester",
+  "name": "正则测试器",
+  "description": "在线正则表达式测试工具",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["正则", "regex", "测试", "匹配"],
+  "features": ["实时匹配", "常用模板", "标志设置"]
+}

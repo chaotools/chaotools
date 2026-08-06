@@ -1,0 +1,11 @@
+{
+  "id": "timestamp-converter",
+  "name": "时间戳转换器",
+  "description": "Unix 时间戳与日期时间互转，支持秒/毫秒模式",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["时间戳", "Unix", "转换", "日期"],
+  "features": ["秒/毫秒切换", "实时转换", "当前时间戳"]
+}

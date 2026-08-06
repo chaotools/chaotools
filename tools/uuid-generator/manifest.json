@@ -1,0 +1,11 @@
+{
+  "id": "uuid-generator",
+  "name": "UUID / 密码生成",
+  "description": "v4 UUID + NanoID 生成，可调长度密码+强度指示",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["UUID", "NanoID", "密码", "生成器"],
+  "features": ["UUID v4", "NanoID", "密码生成", "强度检测"]
+}

@@ -1,0 +1,42 @@
+name: 🐛 Bug 报告
+description: 报告 Chaotools 的问题
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug 报告
+
+        请描述你遇到的问题。
+
+  - type: input
+    id: tool-id
+    attributes:
+      label: 工具 ID
+      description: 如果是工具的 bug，填写工具 ID
+      placeholder: "例如: json-formatter"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 详细描述问题
+      placeholder: "描述问题..."
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器版本
+      description: 你使用的浏览器和版本
+      placeholder: "例如: Chrome 120.0"
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 如何复现这个问题？
+      placeholder: "1. 点击...\n2. 输入...\n3. 出现错误"

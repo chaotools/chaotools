@@ -1,0 +1,11 @@
+{
+  "id": "poison-soup",
+  "name": "毒鸡汤",
+  "description": "振奋人心的毒鸡汤，治愈精神内耗",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["fun"],
+  "tags": ["毒鸡汤", "文案", "治愈", "内耗"],
+  "features": ["毒鸡汤语录", "随机生成", "一键复制"]
+}

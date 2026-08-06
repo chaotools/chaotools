@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 词汇卡片 — AI Vocab Flashcards</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif;background:#0d0d0d;color:#ccc;min-height:100dvh;display:flex;flex-direction:column}
+.header{background:#1a1a1a;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px}
+.header a{color:#888;text-decoration:none;font-size:13px}
+.header a:hover{color:#fff}
+.header h1{font-size:18px;color:#fff;flex:1}
+.main{flex:1;max-width:500px;margin:0 auto;padding:24px 16px;width:100%;display:flex;flex-direction:column;align-items:center}
+
+/* 进度条 */
+.progress{width:100%;margin-bottom:20px}
+.progress-bar{height:4px;background:#222;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#0f3460,#1a5276);border-radius:2px;transition:width 0.3s}
+.progress-text{font-size:12px;color:#666;margin-top:6px;display:flex;justify-content:space-between}
+
+/* 分类标签 */
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.cat{padding:4px 12px;border-radius:14px;font-size:12px;background:#1a1a1a;border:1px solid #333;color:#888;cursor:pointer}
+.cat.active{background:#0f3460;border-color:#0f3460;color:#fff}
+
+/* 卡片 */
+.card-wrap{width:100%;max-width:360px;height:280px;perspective:1000px;cursor:pointer;margin-bottom:20px}
+.card-inner{position:relative;width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d}
+.card-inner.flipped{transform:rotateY(180deg)}
+.card-front,.card-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;border:1px solid #2a2a2a}
+.card-front{background:#1a1a1a}
+.card-back{background:#0f1a2e;transform:rotateY(180deg);border-color:#0f3460}
+.card-word{font-size:36px;font-weight:700;color:#fff;margin-bottom:8px;text-align:center}
+.card-phonetic{font-size:16px;color:#666;margin-bottom:16px}
+.card-cat-badge{font-size:11px;padding:3px 10px;border-radius:10px;background:#222;color:#888;margin-bottom:20px}
+.card-hint{font-size:13px;color:#555;margin-top:auto}
+.card-meaning{font-size:20px;color:#fff;text-align:center;line-height:1.5;font-weight:600}
+.card-detail{font-size:14px;color:#888;text-align:center;margin-top:12px;line-height:1.5}
+.card-example{font-size:13px;color:#666;text-align:center;margin-top:12px;font-style:italic}
+
+/* 按钮 */
+.btns{display:flex;gap:10px;width:100%;max-width:360px}
+.btn{flex:1;padding:12px;border:1px solid #333;border-radius:10px;font-size:14px;cursor:pointer;transition:all 0.15s;text-align:center}
+.btn-know{background:#0d3818;border-color:#27ae60;color:#27ae60}
+.btn-know:hover{background:#0f4a20}
+.btn-again{background:#381a0d;border-color:#e67e22;color:#e67e22}
+.btn-again:hover{background:#4a200f}
+.btn-shuffle{background:transparent;border-color:#555;color:#888;flex:0;padding:12px 16px}
+
+/* 统计 */
+.stats{width:100%;display:flex;gap:12px;margin-top:20px}
+.stat{flex:1;text-align:center;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px}
+.stat .num{font-size:24px;font-weight:700}
+.stat .num.good{color:#27ae60}
+.stat .num.bad{color:#e67e22}
+.stat .label{font-size:11px;color:#666;margin-top:2px}
+
+/* 完成弹窗 */
+.done-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center}
+.done-overlay.show{display:flex}
+.done-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:32px;text-align:center;max-width:320px}
+.done-card h2{color:#27ae60;margin-bottom:12px}
+.done-card p{color:#888;margin-bottom:20px;font-size:14px}
+.done-card button{padding:12px 32px;background:#0f3460;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer}
+
+@media(max-width:400px){.card-wrap{height:240px}.card-word{font-size:28px}.card-meaning{font-size:17px}}
+</style>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+
+<div class="header">
+  <a href="/">← 工具箱</a>
+  <h1>🧠 AI 词汇卡片</h1>
+  <span style="font-size:12px;color:#888" id="remaining">0</span>
+</div>
+
+<div class="main">
+  <div class="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-text">
+      <span id="currentNum">1</span><span>/</span><span id="totalNum">50</span>
+      <span id="catLabel" style="color:#666"></span>
+    </div>
+  </div>
+
+  <div class="cats" id="cats"></div>
+
+  <div class="card-wrap" onclick="flip()">
+    <div class="card-inner" id="card">
+      <div class="card-front">
+        <div class="card-cat-badge" id="catBadge"></div>
+        <div class="card-word" id="word">token</div>
+        <div class="card-phonetic" id="phonetic"></div>
+        <div class="card-hint">👆 点击翻转看释义</div>
+      </div>
+      <div class="card-back">
+        <div class="card-meaning" id="meaning"></div>
+        <div class="card-detail" id="detail"></div>
+        <div class="card-example" id="example"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="btn btn-again" onclick="markAgain()">🔄 再背一次</button>
+    <button class="btn btn-shuffle" onclick="shuffle()" title="换一组">🔀</button>
+    <button class="btn btn-know" onclick="markKnown()">✅ 记住了</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="num" id="knownCount">0</div>
+      <div class="label">✅ 已掌握</div>
+    </div>
+    <div class="stat">
+      <div class="num" id="queueCount">50</div>
+      <div class="label">📚 待学习</div>
+    </div>
+    <div class="stat">
+      <div class="num" style="color:#888" id="streakCount">0</div>
+      <div class="label">🔥 连续正确</div>
+    </div>
+  </div>
+</div>
+
+<div class="done-overlay" id="doneOverlay">
+  <div class="done-card">
+    <h2>🎉 全部完成！</h2>
+    <p id="doneMsg"></p>
+    <button onclick="resetAll()">🔄 重新开始</button>
+  </div>
+</div>
+
+<script>
+// ===== 词汇库 =====
+const allWords = [
+  // 基础概念
+  {w:"model",p:"/ˈmɑːdl/",m:"模型",d:"训练好的「大脑」，接收输入给出输出。你调 DeepSeek API 就是在用 model",c:"基础",e:"Which model should I use for this task?"},
+  {w:"inference",p:"/ˈɪnfərəns/",m:"推理",d:"模型运行一次 = 做一次预测。每次调 API 的请求就是一次 inference",c:"基础",e:"Inference speed is faster with GPU"},
+  {w:"training",p:"/ˈtreɪnɪŋ/",m:"训练",d:"给模型喂海量数据让它学会规律。比如用 100 万篇文章让模型学会写作",c:"基础",e:"Training a model requires massive datasets"},
+  {w:"fine-tuning",p:"/faɪn ˈtjuːnɪŋ/",m:"微调",d:"在已有模型基础上用特定数据再训练，让它更懂某个领域。比如用医学文献微调出医疗模型",c:"基础",e:"We fine-tuned the model on medical data"},
+  {w:"checkpoint",p:"/ˈtʃekpɔɪnt/",m:"检查点",d:"训练过程中保存的模型快照，可以回滚或继续训练",c:"基础",e:"Save a checkpoint every 1000 steps"},
+  {w:"benchmark",p:"/ˈbentʃmɑːrk/",m:"基准测试",d:"用标准题目给模型打分排名。比如 MMLU、HumanEval 就是常用的 benchmark",c:"基础",e:"This model outperforms others on every benchmark"},
+  {w:"pre-trained",p:"/priː ˈtreɪnd/",m:"预训练",d:"别人训好了你直接用。GPT、Claude、DeepSeek 都是 pre-trained model",c:"基础",e:"We're using a pre-trained model from HuggingFace"},
+  {w:"dataset",p:"/ˈdeɪtəset/",m:"数据集",d:"训练或测试模型用的数据集合，比如图片+标签、问答对、代码库等",c:"基础",e:"The dataset contains 10 million images"},
+
+  // 模型内部
+  {w:"token",p:"/ˈtoʊkən/",m:"令牌/词元",d:"模型读的不是字，是 token。1 中文 ≈ 1-2 token，API 按 token 计费",c:"内部",e:"This prompt is about 500 tokens long"},
+  {w:"parameter",p:"/pəˈræmɪtər/",m:"参数",d:"模型的「记忆单元」，像神经元连接。7B = 70 亿参数。越大越聪明也越贵",c:"内部",e:"A 7B parameter model can run on a single GPU"},
+  {w:"layer",p:"/ˈleɪər/",m:"层",d:"模型的「深度」，数据一层层传过去，每层提取不同特征",c:"内部",e:"Deeper layers capture more abstract features"},
+  {w:"transformer",p:"/trænsˈfɔːrmər/",m:"Transformer 架构",d:"2017 年提出，现在所有大模型（GPT/Claude/DeepSeek）的基础架构",c:"内部",e:"The transformer architecture revolutionized NLP"},
+  {w:"attention",p:"/əˈtenʃən/",m:"注意力机制",d:"Transformer 核心——处理一个词时看整句话的其他词来理解上下文",c:"内部",e:"Self-attention helps the model understand word relationships"},
+  {w:"context window",p:"/ˈkɑːntekst ˈwɪndoʊ/",m:"上下文窗口",d:"一次对话模型能「记住」的最大 token 数。DeepSeek 有 1M",c:"内部",e:"The context window determines how much text the model can process at once"},
+  {w:"embedding",p:"/ɪmˈbedɪŋ/",m:"嵌入向量",d:"把文字变成一串数字（向量），意思相近的词向量也相近。用于搜索和聚类",c:"内部",e:"We use embeddings for semantic search"},
+  {w:"weight",p:"/weɪt/",m:"权重",d:"模型参数的具体数值。训练就是不断调整这些数字让输出更准确",c:"内部",e:"The model weights are updated during training"},
+  {w:"bias",p:"/ˈbaɪəs/",m:"偏置项",d:"每个神经元的额外可调参数，让模型更灵活。和数据偏见（bias）是不同概念",c:"内部",e:"Each neuron has a weight and a bias"},
+  {w:"activation",p:"/ˌæktɪˈveɪʃən/",m:"激活函数",d:"决定神经元「要不要发信号出去」的开关。ReLU 最常用",c:"内部",e:"ReLU is the most popular activation function"},
+  {w:"gradient",p:"/ˈɡreɪdiənt/",m:"梯度",d:"告诉模型「往哪个方向调整参数能让结果更好」的指引。反向传播的基础",c:"内部",e:"Gradient descent minimizes the loss function"},
+  {w:"epoch",p:"/ˈepək/",m:"轮次",d:"把全部训练数据过一遍叫一个 epoch。通常要训练几十到几百个 epoch",c:"内部",e:"The model was trained for 100 epochs"},
+  {w:"batch",p:"/bætʃ/",m:"批次",d:"一次训练用多少条数据。CPU 只能一次几条，GPU 可以一次几百条",c:"内部",e:"Increase batch size for faster training on GPU"},
+  {w:"loss",p:"/lɔːs/",m:"损失/误差",d:"模型输出和正确答案的差距。loss 越小越准，训练就是让 loss 下降",c:"内部",e:"The loss decreased steadily during training"},
+
+  // API 参数
+  {w:"prompt",p:"/prɑːmpt/",m:"提示词",d:"你发给模型的文字。分为 system prompt（设定角色）和 user prompt（具体问题）",c:"API",e:"Write a clear prompt to get better results"},
+  {w:"completion",p:"/kəmˈpliːʃən/",m:"补全",d:"模型返回的文字。API response 里的 choices[0].message.content",c:"API",e:"The completion was generated in under 2 seconds"},
+  {w:"temperature",p:"/ˈtemprətʃər/",m:"温度",d:"0~2 之间。越高输出越随机（更有创意），越低越确定（更精确）",c:"API",e:"Set temperature to 0.3 for factual tasks"},
+  {w:"top-p",p:"/tɑːp piː/",m:"核采样",d:"另一种控制随机性的方法。限定模型只从概率最高的前 p% 词汇中选",c:"API",e:"Use top-p sampling for more diverse outputs"},
+  {w:"max_tokens",p:"/mæks ˈtoʊkənz/",m:"最大令牌数",d:"限制模型最多输出多少 token。太长浪费钱，太短话没说完就截断了",c:"API",e:"Set max_tokens to 8192 for long-form content"},
+  {w:"streaming",p:"/ˈstriːmɪŋ/",m:"流式输出",d:"一个字一个字返回，像打字机效果。用户不用等全部生成完就能看到内容",c:"API",e:"Enable streaming for a better user experience"},
+  {w:"rate-limit",p:"/reɪt ˈlɪmɪt/",m:"频率限制",d:"API 每分钟/每天允许的请求次数上限。超了会返回 429 错误",c:"API",e:"We hit the rate limit after too many requests"},
+  {w:"timeout",p:"/ˈtaɪmaʊt/",m:"超时",d:"等太久没响应就放弃。大模型生成慢，一般设 60-300 秒",c:"API",e:"Set a reasonable timeout for long generations"},
+  {w:"retry",p:"/riːˈtraɪ/",m:"重试",d:"API 调用失败后自动再试。配合指数退避（每次等更久）来避免雪崩",c:"API",e:"Implement exponential backoff for retries"},
+  {w:"fallback",p:"/ˈfɔːlbæk/",m:"降级/备选",d:"主模型挂了自动切换到备用模型。比如 Claude 挂了切到 DeepSeek",c:"API",e:"We have a fallback model if the primary fails"},
+  {w:"system prompt",p:"/ˈsɪstəm prɑːmpt/",m:"系统提示",d:"设定 AI 角色和行为规则，优先级最高。你的翻译工具就用这个设翻译规则",c:"API",e:"The system prompt defines the assistant's behavior"},
+  {w:"few-shot",p:"/fjuː ʃɑːt/",m:"少样本提示",d:"在 prompt 里给几个例子，让 AI 照葫芦画瓢。例：翻译→给 3 个翻译示例",c:"API",e:"Few-shot prompting improves accuracy on specific tasks"},
+  {w:"chain-of-thought",p:"/tʃeɪn əv θɔːt/",m:"思维链 (CoT)",d:"让 AI「一步步思考」，对复杂推理效果显著。Prompt 里加「Let's think step by step」",c:"API",e:"Chain-of-thought reasoning improves math accuracy"},
+  {w:"hallucination",p:"/həˌluːsɪˈneɪʃən/",m:"幻觉",d:"AI 瞎编了一个不存在的事实——它看起来很自信但全是假的。用 RAG 可以减少",c:"API",e:"The model hallucinated a fake citation"},
+
+  // 进阶
+  {w:"RAG",p:"/ræɡ/",m:"检索增强生成",d:"先搜外部知识库，再把结果塞进 prompt。让模型基于真实数据回答，不编造",c:"进阶",e:"RAG reduces hallucinations by grounding answers in documents"},
+  {w:"vector database",p:"/ˈvektər ˈdeɪtəbeɪs/",m:"向量数据库",d:"存 embedding 的专用数据库，做语义搜索。Pinecone、Milvus、Chroma 是代表",c:"进阶",e:"We store embeddings in a vector database for fast retrieval"},
+  {w:"RLHF",p:"/ɑːr el eɪtʃ ef/",m:"人类反馈强化学习",d:"让人给模型输出打分，模型根据分数改进。ChatGPT 就是这样训出来的",c:"进阶",e:"RLHF aligns the model with human preferences"},
+  {w:"quantization",p:"/ˌkwɑːntɪˈzeɪʃən/",m:"量化",d:"把参数从高精度（FP32）压到低精度（INT8/INT4），省显存、加快推理",c:"进阶",e:"4-bit quantization allows running large models on consumer GPUs"},
+  {w:"LoRA",p:"/ˈloʊrə/",m:"低秩适配",d:"一种轻量微调方法，不改原模型只加少量参数。省钱省资源省时间",c:"进阶",e:"We used LoRA to fine-tune the model on a single GPU"},
+  {w:"distillation",p:"/ˌdɪstəˈleɪʃən/",m:"知识蒸馏",d:"用大模型（老师）教小模型（学生）。大模型输出当教材，小模型学得更快更好",c:"进阶",e:"Model distillation reduces size while preserving quality"},
+  {w:"alignment",p:"/əˈlaɪnmənt/",m:"对齐",d:"让模型行为符合人类价值观。不要输出有害内容、不要撒谎、不要越狱",c:"进阶",e:"AI alignment ensures models behave safely"},
+  {w:"latency",p:"/ˈleɪtənsi/",m:"延迟",d:"从发请求到收第一个 token 的等待时间。低延迟对实时对话很重要",c:"进阶",e:"We optimized the pipeline for lower latency"},
+  {w:"throughput",p:"/ˈθruːpʊt/",m:"吞吐量",d:"单位时间内处理的 token 数。高吞吐 = 并发能力强 = 能同时服务更多用户",c:"进阶",e:"The server handles 1000 tokens per second throughput"},
+  {w:"GPU",p:"/dʒiː piː juː/",m:"图形处理器",d:"AI 计算的主力。比 CPU 快几十倍。NVIDIA 统治这个市场，你的 AutoDL 就是 RTX 3090",c:"进阶",e:"Training requires multiple high-end GPUs"},
+  {w:"TPU",p:"/tiː piː juː/",m:"张量处理器",d:"Google 专为 AI 设计的芯片，比 GPU 更适合做矩阵乘法（Transformer 的核心运算）",c:"进阶",e:"Google's TPUs accelerate large-scale training"},
+  {w:"CUDA",p:"/ˈkuːdə/",m:"CUDA",d:"NVIDIA 的 GPU 编程平台。PyTorch/TensorFlow 底层都靠它。没有 CUDA 就没有现代 AI",c:"进阶",e:"Install CUDA toolkit for GPU acceleration"},
+];
+
+// ===== 状态 =====
+let queue = [];          // 待背的词
+let knownIdx = 0;        // queue 中当前位置
+let knownCount = 0;
+let streak = 0;
+let filterCat = 'all';
+let flipped = false;
+
+// ===== 初始化 =====
+function init(){
+  const saved = JSON.parse(localStorage.getItem('ai_vocab_progress') || '{}');
+  knownCount = saved.knownCount || 0;
+  resetQueue(filterCat);
+  renderCats();
+  updateStats();
+}
+
+function resetQueue(cat){
+  const available = cat === 'all' ? allWords : allWords.filter(w => w.c === cat);
+  // Fisher-Yates shuffle
+  queue = [...available];
+  for(let i = queue.length-1; i>0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [queue[i], queue[j]] = [queue[j], queue[i]];
+  }
+  knownIdx = 0;
+  streak = 0;
+  showCard();
+}
+
+function renderCats(){
+  const cats = ['all', ...new Set(allWords.map(w => w.c))];
+  document.getElementById('cats').innerHTML = cats.map(c =>
+    `<span class="cat${c===filterCat?' active':''}" onclick="filterByCat('${c}')">${c==='all'?'全部':c}</span>`
+  ).join('');
+}
+
+function filterByCat(c){
+  filterCat = c;
+  resetQueue(c);
+  renderCats();
+  updateStats();
+}
+
+function showCard(){
+  if(knownIdx >= queue.length){
+    document.getElementById('doneOverlay').classList.add('show');
+    const pct = Math.round(knownCount / allWords.length * 100);
+    document.getElementById('doneMsg').textContent = `本轮完成！总共掌握了 ${knownCount} 个词汇（${pct}%）`;
+    return;
+  }
+  const w = queue[knownIdx];
+  document.getElementById('word').textContent = w.w;
+  document.getElementById('phonetic').textContent = w.p;
+  document.getElementById('catBadge').textContent = w.c;
+  document.getElementById('meaning').textContent = w.m;
+  document.getElementById('detail').textContent = w.d;
+  document.getElementById('example').textContent = w.e ? `"${w.e}"` : '';
+  document.getElementById('currentNum').textContent = knownIdx + 1;
+  document.getElementById('totalNum').textContent = queue.length;
+  document.getElementById('catLabel').textContent = filterCat === 'all' ? '' : `· ${filterCat}`;
+  document.getElementById('remaining').textContent = queue.length - knownIdx;
+  document.getElementById('progressFill').style.width = ((knownIdx / queue.length) * 100) + '%';
+  document.getElementById('card').classList.remove('flipped');
+  flipped = false;
+}
+
+function flip(){
+  flipped = !flipped;
+  document.getElementById('card').classList.toggle('flipped', flipped);
+}
+
+function markKnown(){
+  knownCount++;
+  knownIdx++;
+  streak++;
+  saveProgress();
+  updateStats();
+  showCard();
+}
+
+function markAgain(){
+  // 把当前词移到队列末尾
+  queue.push(queue[knownIdx]);
+  queue.splice(knownIdx, 1);
+  streak = 0;
+  updateStats();
+  showCard();
+}
+
+function shuffle(){
+  resetQueue(filterCat);
+  updateStats();
+}
+
+function resetAll(){
+  knownCount = 0;
+  localStorage.removeItem('ai_vocab_progress');
+  document.getElementById('doneOverlay').classList.remove('show');
+  resetQueue(filterCat);
+  updateStats();
+}
+
+function saveProgress(){
+  localStorage.setItem('ai_vocab_progress', JSON.stringify({knownCount}));
+}
+
+function updateStats(){
+  document.getElementById('knownCount').textContent = knownCount;
+  document.getElementById('queueCount').textContent = allWords.length - knownCount;
+  document.getElementById('streakCount').textContent = streak;
+}
+
+// 键盘操作
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space' || e.code === 'ArrowRight'){
+    e.preventDefault();
+    if(!flipped) flip();
+    else markKnown();
+  } else if(e.code === 'ArrowLeft'){
+    e.preventDefault();
+    markAgain();
+  } else if(e.code === 'ArrowUp' || e.code === 'KeyF'){
+    e.preventDefault();
+    flip();
+  }
+});
+
+init();
+</script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

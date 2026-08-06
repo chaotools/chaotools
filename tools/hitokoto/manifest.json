@@ -1,0 +1,11 @@
+{
+  "id": "hitokoto",
+  "name": "一言 / 诗句",
+  "description": "随机获取一言或诗句",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["fun"],
+  "tags": ["一言", "诗句", "诗词", "随机"],
+  "features": ["一言获取", "分类选择", "诗词典故"]
+}

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日期数据分析</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif;background:#0d0d0d;color:#ccc;min-height:100dvh}
+.header{background:#1a1a1a;border-bottom:1px solid #2a2a2a;padding:12px 24px;display:flex;align-items:center;gap:12px}
+.header a{color:#888;text-decoration:none;font-size:13px}
+.header h1{font-size:18px;color:#fff;flex:1}
+.main{max-width:900px;margin:0 auto;padding:20px}
+textarea{width:100%;height:200px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:14px;padding:14px;resize:vertical;font-family:monospace;line-height:1.6}
+textarea:focus{outline:none;border-color:#0f3460}
+.btns{display:flex;gap:10px;margin:12px 0 20px}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:14px;cursor:pointer}
+.btn-primary{background:#0f3460;color:#fff}
+.btn-secondary{background:#222;color:#aaa;border:1px solid #333}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;font-size:13px;color:#888;cursor:pointer;border:1px solid transparent;border-bottom:none}
+.tab.active{background:#1a1a1a;color:#fff;border-color:#333}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px;text-align:center}
+.card .num{font-size:28px;font-weight:700;color:#fff}
+.card .label{font-size:12px;color:#666;margin-top:4px}
+
+/* Heatmap */
+.heatmap{overflow-x:auto;padding-bottom:12px}
+.heatmap-row{display:flex;align-items:center;gap:4px;margin-bottom:3px}
+.heatmap-label{width:36px;font-size:11px;color:#555;text-align:right;flex-shrink:0}
+.heatmap-cell{width:14px;height:14px;border-radius:2px;flex-shrink:0;cursor:default;position:relative}
+.heatmap-cell:hover::after{content:attr(data-date);position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:#333;padding:2px 8px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:10}
+.heatmap-months{display:flex;margin-bottom:4px;padding-left:40px}
+.heatmap-months span{width:14px;margin-right:4px;font-size:9px;color:#444}
+.heatmap-legend{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:#555}
+.heatmap-legend div{width:12px;height:12px;border-radius:2px}
+
+/* Charts */
+.chart{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px;margin-bottom:16px}
+.chart h3{font-size:14px;color:#fff;margin-bottom:12px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bar-label{width:50px;font-size:11px;color:#888;text-align:right;white-space:nowrap}
+.bar-track{flex:1;height:18px;background:#0f0f0f;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;background:linear-gradient(90deg,#0f3460,#1a5276);border-radius:4px;transition:width 0.5s;display:flex;align-items:center;padding-left:6px}
+.bar-val{font-size:10px;color:#fff}
+
+.streak-list{display:flex;flex-wrap:wrap;gap:6px}
+.streak-item{font-size:12px;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:6px 10px}
+.streak-item.long{background:#0d3818;border-color:#27ae60;color:#27ae60}
+
+/* 原始数据表格 */
+.data-table{width:100%;font-size:12px;border-collapse:collapse}
+.data-table th{text-align:left;padding:6px 10px;background:#1a1a1a;color:#888;font-size:11px}
+.data-table td{padding:6px 10px;border-bottom:1px solid #1a1a1a}
+.data-table tr:hover{background:#111}
+
+.hidden{display:none!important}
+
+@media(max-width:600px){.cards{grid-template-columns:repeat(2,1fr)}.heatmap-cell{width:10px;height:10px}.tab{padding:6px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+
+<div class="header">
+  <a href="/">← 工具箱</a>
+  <h1>📊 日期分析</h1>
+  <span id="countBadge" style="font-size:12px;color:#888"></span>
+</div>
+
+<div class="main">
+  <textarea id="input" placeholder="粘贴日期数据，一行一个...&#10;&#10;支持格式：&#10;2024-01-15&#10;2024年1月15日&#10;1月15日 完成&#10;2024/01/15&#10;20240115"></textarea>
+  <div class="btns">
+    <button class="btn btn-primary" onclick="analyze()">🔍 分析</button>
+    <button class="btn btn-secondary" onclick="loadDemo()">📋 加载示例</button>
+    <button class="btn btn-secondary" onclick="exportCSV()">📥 导出 CSV</button>
+    <button class="btn btn-secondary" onclick="clearAll()">🗑 清空</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <span class="tab active" onclick="switchTab('overview')">📊 概览</span>
+    <span class="tab" onclick="switchTab('heatmap')">🗓 热力图</span>
+    <span class="tab" onclick="switchTab('trend')">📈 趋势</span>
+    <span class="tab" onclick="switchTab('streak')">🔥 连胜</span>
+    <span class="tab" onclick="switchTab('gap')">⏱ 间隔</span>
+    <span class="tab" onclick="switchTab('dow')">📅 星期</span>
+    <span class="tab" onclick="switchTab('raw')">📋 原始</span>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+let dates = [];
+let parsed = []; // [{date:Date, note:string, raw:string}]
+
+// ===== 解析引擎 =====
+function parseDate(s){
+  s = s.trim();
+  if(!s) return null;
+  // 提取日期部分（忽略附注）
+  const patterns = [
+    // 2024年1月15日 / 2024年01月15日
+    /(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/,
+    // 1月15日
+    /(\d{1,2})\s*月\s*(\d{1,2})\s*日/,
+    // 2024-01-15 / 2024-1-15
+    /(\d{4})-(\d{1,2})-(\d{1,2})/,
+    // 2024/1/15 / 2024/01/15
+    /(\d{4})\/(\d{1,2})\/(\d{1,2})/,
+    // 20240115
+    /(\d{4})(\d{2})(\d{2})/,
+    // 15/01/2024 (欧洲格式)
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+    // Jan 15 2024 / Jan 15, 2024
+    /([A-Za-z]{3,9})\s+(\d{1,2}),?\s*(\d{4})/,
+  ];
+  const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:9,dec:11,
+    january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
+
+  for(const p of patterns){
+    let m = s.match(p);
+    if(m){
+      let y,mn,d;
+      if(m[0].includes('年')){
+        y = parseInt(m[1]); mn = parseInt(m[2])-1; d = parseInt(m[3]);
+      } else if(m[0].includes('月') && !m[0].includes('年')){
+        y = new Date().getFullYear(); mn = parseInt(m[1])-1; d = parseInt(m[2]);
+      } else if(/^\d{8}$/.test(m[0])){
+        y = parseInt(m[0].slice(0,4)); mn = parseInt(m[0].slice(4,6))-1; d = parseInt(m[0].slice(6,8));
+      } else if(/[A-Za-z]/.test(m[1])){
+        mn = months[m[1].toLowerCase()]; d = parseInt(m[2]); y = parseInt(m[3]);
+      } else {
+        const parts = m.slice(1).map(Number);
+        if(parts[0] > 31) { y = parts[0]; mn = parts[1]-1; d = parts[2]; }
+        else if(parts[2] > 31) { y = parts[2]; mn = parts[1]-1; d = parts[0]; }
+        else { y = parts[0]; mn = parts[1]-1; d = parts[2]; }
+      }
+      if(y && d && mn >= 0 && mn <= 11 && d >= 1 && d <= 31){
+        const dt = new Date(y, mn, d);
+        if(dt.getFullYear() === y && dt.getMonth() === mn && dt.getDate() === d){
+          const note = s.replace(m[0], '').replace(/^[\s,，。.]+/, '').trim();
+          return {date: dt, note: note || '', raw: s};
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ===== 分析 =====
+function analyze(){
+  const text = document.getElementById('input').value;
+  const lines = text.split(/[\n\r]+/).filter(l => l.trim());
+  parsed = [];
+  for(const line of lines){
+    const p = parseDate(line);
+    if(p) parsed.push(p);
+  }
+  parsed.sort((a,b) => a.date - b.date);
+  dates = parsed.map(p => p.date);
+  document.getElementById('countBadge').textContent = `识别到 ${dates.length} 个日期`;
+  renderCurrentTab();
+}
+
+function renderCurrentTab(){
+  const tab = document.querySelector('.tab.active');
+  if(!tab) return;
+  const t = tab.textContent.trim();
+  if(t.includes('概览')) renderOverview();
+  else if(t.includes('热力图')) renderHeatmap();
+  else if(t.includes('趋势')) renderTrend();
+  else if(t.includes('连胜')) renderStreak();
+  else if(t.includes('间隔')) renderGap();
+  else if(t.includes('星期')) renderDOW();
+  else if(t.includes('原始')) renderRaw();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  for(const t of tabs){
+    if(t.textContent.includes(name.split(' ')[0])){
+      t.classList.add('active');
+      break;
+    }
+  }
+  renderCurrentTab();
+}
+
+// ===== 概览 =====
+function renderOverview(){
+  if(!dates.length){ document.getElementById('output').innerHTML='<p style="color:#666;padding:40px;text-align:center">粘贴数据后点击「分析」</p>'; return; }
+  const first = dates[0], last = dates[dates.length-1];
+  const dayMs = 86400000;
+  const gaps = [];
+  for(let i=1;i<dates.length;i++) gaps.push((dates[i]-dates[i-1])/dayMs);
+  const avgGap = gaps.length ? gaps.reduce((a,b)=>a+b,0)/gaps.length : 0;
+  const medianGap = gaps.length ? gaps.sort((a,b)=>a-b)[Math.floor(gaps.length/2)] : 0;
+  const totalDays = Math.round((last-first)/dayMs)+1;
+  const activeDays = new Set(dates.map(d => d.toDateString())).size;
+  const dailyAvg = dates.length / Math.max(1, totalDays/365);
+
+  document.getElementById('output').innerHTML = `
+<div class="cards">
+  <div class="card"><div class="num">${dates.length}</div><div class="label">总记录数</div></div>
+  <div class="card"><div class="num">${totalDays}</div><div class="label">跨度天数</div></div>
+  <div class="card"><div class="num">${activeDays}</div><div class="label">活跃天数</div></div>
+  <div class="card"><div class="num">${avgGap.toFixed(1)}天</div><div class="label">平均间隔</div></div>
+  <div class="card"><div class="num">${medianGap.toFixed(0)}天</div><div class="label">中位间隔</div></div>
+  <div class="card"><div class="num">${dailyAvg.toFixed(1)}</div><div class="label">年均次数</div></div>
+</div>
+<div class="chart">
+  <h3>时间线</h3>
+  <div style="font-size:13px;color:#888">
+    最早：<b style="color:#fff">${fmtDate(first)}</b> &nbsp; 最近：<b style="color:#fff">${fmtDate(last)}</b>
+  </div>
+  <div style="margin-top:12px;height:2px;background:#1a1a1a;position:relative;border-radius:1px">
+    ${dates.map((d,i)=>{
+      const pct = ((d-first)/dayMs / Math.max(1,totalDays) * 100).toFixed(2);
+      return `<span style="position:absolute;left:${pct}%;top:-3px;width:3px;height:8px;background:#${i===0||i===dates.length-1?'0f3460':'333'};border-radius:1px" title="${fmtDate(d)}"></span>`;
+    }).join('')}
+  </div>
+</div>`;
+}
+
+// ===== 热力图 =====
+function renderHeatmap(){
+  if(!dates.length) return;
+  const now = new Date();
+  // 计算一年前的今天
+  const oneYearAgo = new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
+  const startDate = new Date(Math.min(dates[0].getTime(), oneYearAgo.getTime()));
+  // 对齐到周日
+  const start = new Date(startDate);
+  start.setDate(start.getDate() - start.getDay());
+  const end = now;
+  const dayCounts = {};
+  for(const d of dates){
+    const k = d.toDateString();
+    dayCounts[k] = (dayCounts[k]||0)+1;
+  }
+  const maxCount = Math.max(1, ...Object.values(dayCounts));
+  const colors = ['#1a1a1a','#0f2a1a','#0d3818','#0f4a20','#1a5c2a','#27ae60'];
+
+  const totalWeeks = Math.ceil((end-start)/86400000/7);
+  // Build week rows (Sun-Sat)
+  let html = '<div class="heatmap">';
+  const days = ['日','一','二','三','四','五','六'];
+  for(let wd=0;wd<7;wd++){
+    html += `<div class="heatmap-row"><div class="heatmap-label">${days[wd]}</div>`;
+    for(let wk=0; wk<totalWeeks; wk++){
+      const d = new Date(start);
+      d.setDate(start.getDate()+wk*7+wd);
+      const k = d.toDateString();
+      const cnt = dayCounts[k]||0;
+      const lvl = cnt===0 ? 0 : Math.ceil(cnt/maxCount*5);
+      html += `<div class="heatmap-cell" style="background:${colors[lvl]}" data-date="${k}" title="${k}: ${cnt}次"></div>`;
+    }
+    html += '</div>';
+  }
+  html += `<div class="heatmap-legend">少 ${colors.map(c=>`<div style="background:${c}"></div>`).join('')} 多</div>`;
+  html += '</div>';
+  document.getElementById('output').innerHTML = html;
+}
+
+// ===== 趋势 =====
+function renderTrend(){
+  if(!dates.length) return;
+  // 按月统计
+  const monthly = {};
+  const yearly = {};
+  for(const d of dates){
+    const mk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const yk = `${d.getFullYear()}`;
+    monthly[mk] = (monthly[mk]||0)+1;
+    yearly[yk] = (yearly[yk]||0)+1;
+  }
+  const maxM = Math.max(...Object.values(monthly));
+  const maxY = Math.max(...Object.values(yearly));
+  const mKeys = Object.keys(monthly).sort();
+  const yKeys = Object.keys(yearly).sort();
+
+  let html = '<div class="chart"><h3>按月统计</h3>';
+  for(const k of mKeys){
+    const v = monthly[k];
+    html += `<div class="bar-row"><span class="bar-label">${k}</span><div class="bar-track"><div class="bar-fill" style="width:${(v/maxM*100).toFixed(0)}%"><span class="bar-val">${v}</span></div></div></div>`;
+  }
+  html += '</div><div class="chart"><h3>按年统计</h3>';
+  for(const k of yKeys){
+    const v = yearly[k];
+    html += `<div class="bar-row"><span class="bar-label">${k}</span><div class="bar-track"><div class="bar-fill" style="width:${(v/maxY*100).toFixed(0)}%"><span class="bar-val">${v}</span></div></div></div>`;
+  }
+  html += '</div>';
+
+  // 累计曲线
+  html += '<div class="chart"><h3>累计增长</h3>';
+  let cum = 0;
+  const cumData = dates.map((d,i) => [fmtDate(d), ++cum]);
+  html += '<div style="position:relative;height:120px;margin:10px 0">';
+  const step = Math.max(1, Math.floor(dates.length/50));
+  for(let i=0; i<dates.length; i+=step){
+    cum = i+1;
+    html += `<span style="position:absolute;left:${(i/dates.length*100).toFixed(1)}%;bottom:${(cum/dates.length*100).toFixed(1)}%;width:3px;height:3px;background:#0f3460;border-radius:50%" title="${cumData[i][0]}: ${cum}"></span>`;
+  }
+  html += `<span style="position:absolute;left:0;bottom:0;color:#888;font-size:10px">0</span>`;
+  html += `<span style="position:absolute;left:0;bottom:${Math.min(100,(cum/dates.length*100))}%;color:#27ae60;font-size:11px;font-weight:700">${dates.length}</span>`;
+  html += '</div></div>';
+  document.getElementById('output').innerHTML = html;
+}
+
+// ===== 连胜 =====
+function renderStreak(){
+  if(!dates.length) return;
+  const dayMs = 86400000;
+  const sorted = [...dates].map(d => Math.floor(d.getTime()/dayMs));
+  const unique = [...new Set(sorted)].sort((a,b)=>a-b);
+  const today = Math.floor(new Date().getTime()/dayMs);
+
+  // 找所有 streak
+  let streaks = [];
+  let curStart = unique[0], curLen = 1;
+  for(let i=1; i<unique.length; i++){
+    if(unique[i] === unique[i-1]+1){ curLen++; }
+    else { streaks.push({start:curStart, len:curLen}); curStart = unique[i]; curLen = 1; }
+  }
+  streaks.push({start:curStart, len:curLen});
+  streaks.sort((a,b)=>b.len-a.len);
+
+  const longestStreak = streaks[0];
+  // 当前连胜
+  let currentStreak = 0;
+  if(unique[unique.length-1] >= today-1){
+    let i = unique.length-1;
+    while(i>=0 && unique[i] >= today-(unique.length-i)){ i--; }
+    currentStreak = unique.length-1-i;
+  }
+
+  let html = '<div class="cards">';
+  html += `<div class="card"><div class="num" style="color:#27ae60">${currentStreak}天</div><div class="label">🔥 当前连胜</div></div>`;
+  html += `<div class="card"><div class="num" style="color:#27ae60">${longestStreak.len}天</div><div class="label">🏆 历史最长</div></div>`;
+  html += `<div class="card"><div class="num">${streaks.length}</div><div class="label">连胜段数</div></div>`;
+  html += `<div class="card"><div class="num">${(unique.length/dates.length*100).toFixed(0)}%</div><div class="label">连续天占比</div></div>`;
+  html += '</div>';
+
+  html += '<div class="chart"><h3>所有连胜记录</h3><div class="streak-list">';
+  for(const s of streaks.filter(s=>s.len>=2).slice(0,20)){
+    const d = new Date(s.start*dayMs);
+    const ed = new Date((s.start+s.len-1)*dayMs);
+    html += `<div class="streak-item${s.len>=7?' long':''}">${fmtDate(d)} → ${fmtDate(ed)} &nbsp; <b>${s.len}天</b></div>`;
+  }
+  html += '</div></div>';
+  document.getElementById('output').innerHTML = html;
+}
+
+// ===== 间隔 =====
+function renderGap(){
+  if(dates.length<2) return;
+  const dayMs = 86400000;
+  const gaps = [];
+  for(let i=1;i<dates.length;i++){
+    gaps.push({days:Math.round((dates[i]-dates[i-1])/dayMs), from:dates[i-1], to:dates[i]});
+  }
+  gaps.sort((a,b)=>a.days-b.days);
+  const avg = gaps.reduce((s,g)=>s+g.days,0)/gaps.length;
+  const med = gaps[Math.floor(gaps.length/2)].days;
+  const max = gaps[gaps.length-1];
+  const min = gaps[0];
+
+  // 分布直方图
+  const buckets = {};
+  const bucketSize = Math.max(1, Math.ceil(max.days/15));
+  for(const g of gaps){
+    const bk = Math.floor(g.days/bucketSize)*bucketSize;
+    buckets[bk] = (buckets[bk]||0)+1;
+  }
+  const maxB = Math.max(...Object.values(buckets));
+  const bKeys = Object.keys(buckets).map(Number).sort((a,b)=>a-b);
+
+  let html = '<div class="cards">';
+  html += `<div class="card"><div class="num">${avg.toFixed(1)}天</div><div class="label">平均间隔</div></div>`;
+  html += `<div class="card"><div class="num">${med}天</div><div class="label">中位间隔</div></div>`;
+  html += `<div class="card"><div class="num">${min.days}天</div><div class="label">最短间隔</div></div>`;
+  html += `<div class="card"><div class="num">${max.days}天</div><div class="label">最长间隔</div></div>`;
+  html += '</div>';
+
+  html += '<div class="chart"><h3>间隔分布</h3>';
+  for(const bk of bKeys){
+    const v = buckets[bk];
+    html += `<div class="bar-row"><span class="bar-label">${bk}-${bk+bucketSize-1}天</span><div class="bar-track"><div class="bar-fill" style="width:${(v/maxB*100).toFixed(0)}%"><span class="bar-val">${v}</span></div></div></div>`;
+  }
+  html += '</div>';
+
+  html += `<div class="chart"><h3>最长间隔 TOP 10</h3>`;
+  const topGaps = [...gaps].sort((a,b)=>b.days-a.days).slice(0,10);
+  for(const g of topGaps){
+    html += `<div style="font-size:12px;color:#888;margin-bottom:4px">${fmtDate(g.from)} → ${fmtDate(g.to)} &nbsp; <b style="color:#e67e22">${g.days}天</b></div>`;
+  }
+  html += '</div>';
+  document.getElementById('output').innerHTML = html;
+}
+
+// ===== 星期分布 =====
+function renderDOW(){
+  if(!dates.length) return;
+  const dowNames = ['周日','周一','周二','周三','周四','周五','周六'];
+  const dowCounts = new Array(7).fill(0);
+  for(const d of dates) dowCounts[d.getDay()]++;
+  const maxC = Math.max(...dowCounts);
+
+  // 每月分布
+  const monthCounts = {};
+  for(const d of dates){
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    monthCounts[k] = (monthCounts[k]||0)+1;
+  }
+  const mKeys = Object.keys(monthCounts).sort();
+
+  let html = '<div class="chart"><h3>星期分布</h3>';
+  for(let i=0;i<7;i++){
+    html += `<div class="bar-row"><span class="bar-label">${dowNames[i]}</span><div class="bar-track"><div class="bar-fill" style="width:${(dowCounts[i]/maxC*100).toFixed(0)}%"><span class="bar-val">${dowCounts[i]}</span></div></div></div>`;
+  }
+  html += '</div>';
+
+  html += '<div class="chart"><h3>热度日历（月视图）</h3>';
+  // 按月排列的网格
+  html += '<div style="display:flex;flex-wrap:wrap;gap:12px">';
+  for(const mk of mKeys.slice(-24)){
+    const parts = mk.split('-');
+    const y = parseInt(parts[0]), m = parseInt(parts[1])-1;
+    const daysInMonth = new Date(y,m+1,0).getDate();
+    const count = monthCounts[mk];
+    const intensity = count > 15 ? '#27ae60' : count > 8 ? '#0f3460' : count > 3 ? '#1a3a2a' : count > 0 ? '#1a1a1a' : '#111';
+    html += `<div style="text-align:center">
+      <div style="width:36px;height:36px;background:${intensity};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">${count}</div>
+      <div style="font-size:10px;color:#666;margin-top:2px">${m+1}月</div>
+    </div>`;
+  }
+  html += '</div></div>';
+  document.getElementById('output').innerHTML = html;
+}
+
+// ===== 原始数据 =====
+function renderRaw(){
+  if(!parsed.length) return;
+  let html = '<div class="chart"><h3>识别结果 ('+parsed.length+' 条)</h3>';
+  html += '<table class="data-table"><tr><th>#</th><th>日期</th><th>星期</th><th>附注</th><th>原始行</th></tr>';
+  parsed.forEach((p,i) => {
+    const dow = ['日','一','二','三','四','五','六'][p.date.getDay()];
+    html += `<tr><td>${i+1}</td><td style="color:#fff">${fmtDate(p.date)}</td><td>${dow}</td><td style="color:#27ae60">${escHtml(p.note)}</td><td style="color:#666;font-size:11px">${escHtml(p.raw)}</td></tr>`;
+  });
+  html += '</table></div>';
+  document.getElementById('output').innerHTML = html;
+}
+
+// ===== 工具函数 =====
+function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function loadDemo(){
+  const now = new Date();
+  let lines = [];
+  for(let i=0; i<200; i++){
+    const d = new Date(now - Math.floor(Math.random()*1095*86400000));
+    lines.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}${Math.random()>0.7?' 备注内容':''}`);
+  }
+  document.getElementById('input').value = lines.join('\n');
+  analyze();
+}
+
+function exportCSV(){
+  if(!parsed.length) return;
+  let csv = '序号,日期,星期,附注,原始行\n';
+  parsed.forEach((p,i)=>{
+    const dow = ['日','一','二','三','四','五','六'][p.date.getDay()];
+    csv += `${i+1},${fmtDate(p.date)},${dow},"${p.note}","${p.raw}"\n`;
+  });
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'date-analysis.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearAll(){
+  document.getElementById('input').value = '';
+  document.getElementById('output').innerHTML = '';
+  parsed = []; dates = [];
+  document.getElementById('countBadge').textContent = '';
+}
+
+// 保存/恢复
+const saved = localStorage.getItem('date_analyzer_input');
+if(saved) document.getElementById('input').value = saved;
+document.getElementById('input').addEventListener('input', function(){
+  localStorage.setItem('date_analyzer_input', this.value);
+});
+</script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

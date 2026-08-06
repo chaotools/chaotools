@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emoji 搜索 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .search-box {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 14px 14px 44px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: var(--text-dim);
+    }
+
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .cat-btn {
+      padding: 6px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-dim);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cat-btn:hover {
+      border-color: var(--brand, var(--cyan));
+      color: var(--text);
+    }
+
+    .cat-btn.active {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: var(--brand, var(--cyan));
+      color: var(--brand, var(--cyan));
+    }
+
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 8px;
+    }
+
+    .emoji-item {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .emoji-item:hover {
+      border-color: var(--brand, var(--cyan));
+      transform: scale(1.1);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .emoji-item.copied {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--brand, var(--cyan));
+      color: var(--bg);
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .stats {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>😂 Emoji 搜索</h1>
+    <p class="desc">14 大分类 130+ emoji，中文关键词检索，点击复制</p>
+
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="输入中文关键词，如：开心、动物、星星...">
+    </div>
+
+    <div class="categories">
+      <button class="cat-btn active" onclick="setCategory(this, 'all')">全部</button>
+      <button class="cat-btn" onclick="setCategory(this, '表情')">😀 表情</button>
+      <button class="cat-btn" onclick="setCategory(this, '手势')">👋 手势</button>
+      <button class="cat-btn" onclick="setCategory(this, '爱心')">❤️ 爱心</button>
+      <button class="cat-btn" onclick="setCategory(this, '动物')">🐱 动物</button>
+      <button class="cat-btn" onclick="setCategory(this, '食物')">🍕 食物</button>
+      <button class="cat-btn" onclick="setCategory(this, '水果')">🍎 水果</button>
+      <button class="cat-btn" onclick="setCategory(this, '植物')">🌸 植物</button>
+      <button class="cat-btn" onclick="setCategory(this, '自然')">🌈 自然</button>
+      <button class="cat-btn" onclick="setCategory(this, '物品')">📱 物品</button>
+      <button class="cat-btn" onclick="setCategory(this, '符号')">⭐ 符号</button>
+      <button class="cat-btn" onclick="setCategory(this, '节日')">🎉 节日</button>
+      <button class="cat-btn" onclick="setCategory(this, '人物')">👤 人物</button>
+      <button class="cat-btn" onclick="setCategory(this, '衣物')">👔 衣物</button>
+    </div>
+
+    <div id="emojiGrid" class="emoji-grid"></div>
+    <p id="stats" class="stats"></p>
+  </div>
+
+  <div id="toast" class="toast">✅ 已复制!</div>
+
+  <script>
+    // Emoji与中文关键词映射表
+    const EMOJI_KEYWORDS = {
+      '😀': ['开心', '高兴', '笑', 'smile', 'happy', 'joy'],
+      '😃': ['开心', '大笑', '高兴'],
+      '😄': ['大笑', '开心'],
+      '😁': ['微笑', '露齿笑'],
+      '😆': ['笑', '大笑', 'laugh'],
+      '😅': ['苦笑', '尴尬', '汗'],
+      '😂': ['笑', '笑哭', 'funny', 'cry'],
+      '🤣': ['笑', '大笑', '笑翻'],
+      '🥹': ['感动', '含泪'],
+      '😊': ['微笑', '开心'],
+      '😇': ['天使', '善良'],
+      '🙂': ['微笑'],
+      '😉': ['眨眼', 'wink'],
+      '😌': ['放心', '轻松'],
+      '😍': ['爱', '喜欢', 'love', '心动'],
+      '🥰': ['爱', '爱心', 'love'],
+      '😘': ['飞吻', 'love'],
+      '🥺': ['可怜', '求', '撒娇'],
+      '😭': ['哭', '大哭', 'cry'],
+      '😤': ['生气', '哼'],
+      '😡': ['生气', '怒'],
+      '🤬': ['骂人', '生气'],
+      '😷': ['生病', '口罩', 'covid'],
+      '🤒': ['生病', '发烧'],
+      '🤢': ['恶心', 'sick'],
+      '🤮': ['呕吐'],
+      '🥴': ['晕', '迷糊', '醉'],
+      '😵': ['晕', '头晕'],
+      '🤯': ['爆炸', '震惊'],
+      '🤠': ['牛仔', '帽子'],
+      '🥳': ['派对', '庆祝', 'birthday'],
+      '🥸': ['胡子', '伪装'],
+      '😎': ['酷', '墨镜', 'cool'],
+      '🤓': ['书呆子', '眼镜'],
+      '🧐': ['侦探', '审视'],
+      '😕': ['困惑', '疑问'],
+      '😟': ['担心', '担忧'],
+      '🙁': ['不开心', '难过'],
+      '☹️': ['不开心'],
+      '😮': ['惊讶', '震惊', '哇'],
+      '😯': ['惊讶'],
+      '😲': ['震惊', '惊呆'],
+      '😳': ['害羞', '脸红', 'shy'],
+      '🤔': ['思考', '想', 'think'],
+      '🤫': ['安静', '嘘'],
+      '🤭': ['偷笑', '嘻嘻'],
+      '🤪': ['调皮', '疯狂'],
+      '😜': ['调皮', '吐舌', 'wink'],
+      '😝': ['调皮'],
+      '😛': ['调皮'],
+      '🤑': ['钱', '发财', 'money'],
+      '🤗': ['拥抱', '抱抱', 'hug'],
+      '🤐': ['闭嘴', '保密'],
+      '🤨': ['质疑', '怀疑'],
+      '😐': ['中性', '淡定'],
+      '😑': ['冷漠'],
+      '😶': ['无语', '闭嘴'],
+      '🙄': ['白眼', '无奈', '翻白眼'],
+      '😏': ['得意', '坏笑'],
+      '😣': ['痛苦'],
+      '😥': ['失望'],
+      '😢': ['哭', '流泪'],
+      '😩': ['累', '疲惫'],
+      '😫': ['累', '疲倦'],
+      '🥱': ['困', '无聊'],
+      '😰': ['焦虑', '担心'],
+      '😱': ['恐惧', '害怕', '恐怖'],
+      '😖': ['困惑', '郁闷'],
+      '😔': ['伤心', '沮丧'],
+      '😪': ['困', '想睡'],
+      '🤤': ['流口水', '馋', '饿'],
+      '😴': ['睡觉', 'sleep'],
+      '🤧': ['喷嚏', '感冒'],
+      '🥵': ['热', 'hot'],
+      '🥶': ['冷', 'cold'],
+      '👋': ['挥手', '手', 'wave'],
+      '✋': ['手', '停止', 'stop'],
+      '👌': ['OK', '好', 'perfect'],
+      '✌️': ['胜利', '耶', 'victory'],
+      '🤞': ['好运', '祝福'],
+      '👈': ['指向', '左', 'point'],
+      '👉': ['指向', '右', 'point'],
+      '👆': ['指向', '上', 'point'],
+      '👇': ['指向', '下', 'point'],
+      '👍': ['点赞', '好', 'like', 'up'],
+      '👎': ['点踩', 'dislike', 'down'],
+      '✊': ['拳头', '加油', 'fist'],
+      '👊': ['拳头', '出击', 'punch'],
+      '🤛': ['拳头', 'punch'],
+      '🤜': ['拳头', 'punch'],
+      '👏': ['鼓掌', '拍手', 'clap'],
+      '🙌': ['庆祝', '举手'],
+      '🙏': ['祈祷', '感谢', 'please'],
+      '👀': ['眼睛', '看', 'eye'],
+      '👁️': ['眼睛', 'eye'],
+      '👄': ['嘴唇'],
+      '👅': ['舌头'],
+      '❤️': ['爱心', '爱', '心', 'love', 'red'],
+      '🧡': ['爱心', 'orange'],
+      '💛': ['爱心', 'yellow'],
+      '💚': ['爱心', 'green'],
+      '💙': ['爱心', 'blue'],
+      '💜': ['爱心', 'purple'],
+      '🖤': ['黑心', 'black'],
+      '🤍': ['白心', 'white'],
+      '🤎': ['棕心', 'brown'],
+      '💔': ['心碎', '分手', 'broken'],
+      '💕': ['爱心', '双心'],
+      '💞': ['爱心', '旋转'],
+      '💓': ['心跳', '心动', 'beating'],
+      '💗': ['心跳'],
+      '💖': ['爱心', '闪烁'],
+      '💘': ['丘比特', '心动', 'cupid'],
+      '💝': ['礼物', 'gift'],
+      '💟': ['爱心', '装饰'],
+      '🐱': ['猫', 'cat'],
+      '🐶': ['狗', 'dog', 'puppy'],
+      '🐭': ['老鼠', 'mouse'],
+      '🐹': ['仓鼠', 'hamster'],
+      '🐰': ['兔子', 'rabbit', 'bunny'],
+      '🦊': ['狐狸', 'fox'],
+      '🐻': ['熊', 'bear'],
+      '🐼': ['熊猫', 'panda'],
+      '🐨': ['考拉', 'koala'],
+      '🐯': ['老虎', 'tiger'],
+      '🦁': ['狮子', 'lion'],
+      '🐮': ['牛', 'cow'],
+      '🐷': ['猪', 'pig'],
+      '🐸': ['青蛙', 'frog'],
+      '🐵': ['猴子', 'monkey'],
+      '🐔': ['鸡', 'chicken'],
+      '🐧': ['企鹅', 'penguin'],
+      '🐦': ['鸟', 'bird'],
+      '🐤': ['小鸡', 'chick'],
+      '🦆': ['鸭子', 'duck'],
+      '🦅': ['鹰', '老鹰', 'eagle'],
+      '🦉': ['猫头鹰', 'owl'],
+      '🦇': ['蝙蝠', 'bat'],
+      '🐺': ['狼', 'wolf'],
+      '🐴': ['马', 'horse'],
+      '🦄': ['独角兽', 'unicorn'],
+      '🐍': ['蛇', 'snake'],
+      '🐢': ['乌龟', 'turtle'],
+      '🐙': ['章鱼', 'octopus'],
+      '🦀': ['螃蟹', 'crab'],
+      '🦐': ['虾', 'shrimp'],
+      '🐠': ['鱼', 'fish'],
+      '🐟': ['鱼', 'fish'],
+      '🐬': ['海豚', 'dolphin'],
+      '🦈': ['鲨鱼', 'shark'],
+      '🐳': ['鲸鱼', 'whale'],
+      '🐾': ['爪子', 'paw'],
+      '🍎': ['苹果', 'apple', '水果', 'fruit'],
+      '🍐': ['梨', 'pear'],
+      '🍊': ['橙子', 'orange'],
+      '🍋': ['柠檬', 'lemon'],
+      '🍌': ['香蕉', 'banana'],
+      '🍉': ['西瓜', 'watermelon'],
+      '🍇': ['葡萄', 'grape'],
+      '🍓': ['草莓', 'strawberry'],
+      '🫐': ['蓝莓', 'blueberry'],
+      '🍈': ['哈密瓜', '瓜', 'melon'],
+      '🍒': ['樱桃', 'cherry'],
+      '🍑': ['桃子', 'peach'],
+      '🥭': ['芒果', 'mango'],
+      '🍍': ['菠萝', 'pineapple'],
+      '🥥': ['椰子', 'coconut'],
+      '🥝': ['猕猴桃', 'kiwi'],
+      '🍅': ['番茄', 'tomato'],
+      '🍆': ['茄子', 'eggplant'],
+      '🥑': ['牛油果', 'avocado'],
+      '🥦': ['西兰花', 'broccoli'],
+      '🥬': ['白菜', 'vegetable'],
+      '🥒': ['黄瓜', 'cucumber'],
+      '🌶️': ['辣椒', 'hot', 'pepper'],
+      '🌽': ['玉米', 'corn'],
+      '🥕': ['胡萝卜', 'carrot'],
+      '🥔': ['土豆', 'potato'],
+      '🍕': ['披萨', 'pizza'],
+      '🍔': ['汉堡', 'hamburger'],
+      '🍟': ['薯条', 'fries'],
+      '🌭': ['热狗', 'hotdog'],
+      '🍿': ['爆米花', 'popcorn'],
+      '🥓': ['培根', 'bacon'],
+      '🥚': ['鸡蛋', 'egg'],
+      '🍳': ['煎蛋', '早餐', 'breakfast'],
+      '🥞': ['煎饼', 'pancake'],
+      '🍞': ['面包', 'bread'],
+      '🥐': ['牛角面包', 'croissant'],
+      '🥖': ['法棍', 'baguette'],
+      '🧀': ['奶酪', 'cheese'],
+      '🥗': ['沙拉', 'salad'],
+      '🍝': ['意面', 'pasta'],
+      '🍜': ['拉面', '面', 'noodle', 'ramen'],
+      '🍲': ['咖喱', '炖菜', 'curry'],
+      '🍛': ['咖喱饭'],
+      '🍣': ['寿司', 'sushi'],
+      '🍱': ['便当', 'bento'],
+      '🥟': ['饺子', 'dumpling'],
+      '🍦': ['冰淇淋', 'ice cream'],
+      '🍧': ['刨冰', 'shaved ice'],
+      '🍨': ['冰淇淋', 'gelato'],
+      '🍩': ['甜甜圈', 'donut'],
+      '🍪': ['饼干', 'cookie'],
+      '🎂': ['蛋糕', 'cake', 'birthday'],
+      '🍰': ['蛋糕', 'cake'],
+      '🧁': ['纸杯蛋糕', 'cupcake'],
+      '🍫': ['巧克力', 'chocolate'],
+      '🍬': ['糖果', 'candy'],
+      '🍭': ['棒棒糖', 'lollipop'],
+      '☕': ['咖啡', 'coffee'],
+      '🍵': ['茶', 'tea'],
+      '🍺': ['啤酒', 'beer'],
+      '🍻': ['啤酒', 'beers'],
+      '🥂': ['香槟', 'champagne'],
+      '🍷': ['红酒', 'wine'],
+      '🥃': ['威士忌', 'whiskey'],
+      '🌸': ['樱花', '花', 'flower', 'cherry blossom'],
+      '💐': ['花束', 'bouquet'],
+      '🌹': ['玫瑰', 'rose'],
+      '🌻': ['向日葵', 'sunflower'],
+      '🌼': ['小花', 'blossom'],
+      '🌷': ['郁金香', 'tulip'],
+      '🌱': ['幼苗', '种子', 'seedling'],
+      '🪴': ['盆栽', '植物', 'plant'],
+      '🌲': ['树'],
+      '🌳': ['树', 'deciduous'],
+      '🌴': ['棕榈树', 'palm'],
+      '🌵': ['仙人掌', 'cactus'],
+      '🌾': ['稻穗', 'rice'],
+      '🌿': ['草', 'herb', '植物'],
+      '☘️': ['三叶草', 'clover', 'luck'],
+      '🍀': ['四叶草', '幸运', 'lucky'],
+      '🍃': ['叶子', 'leaf', '树叶'],
+      '🍂': ['落叶'],
+      '🍁': ['枫叶', 'maple'],
+      '🌈': ['彩虹', 'rainbow'],
+      '☀️': ['太阳', '晴天', 'sun', 'sunny'],
+      '🌤️': ['多云', 'sun behind cloud'],
+      '⛅': ['多云', 'cloud'],
+      '☁️': ['云', 'cloud'],
+      '🌧️': ['下雨', 'rain'],
+      '⛈️': ['雷雨', 'thunder'],
+      '🌩️': ['闪电', 'lightning'],
+      '❄️': ['雪', '雪花', 'snowflake', 'cold'],
+      '☃️': ['雪人', 'snowman'],
+      '⛄': ['雪人'],
+      '🌬️': ['风', 'wind'],
+      '💨': ['风', '快', 'fast'],
+      '🌪️': ['龙卷风', 'tornado'],
+      '🌫️': ['雾', 'fog'],
+      '🌊': ['海浪', 'wave'],
+      '💧': ['水滴', 'droplet'],
+      '💦': ['水滴', 'splash'],
+      '👤': ['人', 'user'],
+      '👥': ['人', 'users', '团队'],
+      '👣': ['脚印', 'footprints'],
+      '🎃': ['南瓜', '万圣节', 'pumpkin', 'halloween'],
+      '🎄': ['圣诞树', 'christmas'],
+      '🎆': ['烟花', 'fireworks'],
+      '🎇': ['烟花', 'stars'],
+      '🎁': ['礼物', 'gift'],
+      '🎀': ['蝴蝶结', 'ribbon'],
+      '🎊': ['彩带球', 'confetti'],
+      '🎉': ['派对', '庆祝', 'party'],
+      '🎈': ['气球', 'balloon'],
+      '🏮': ['灯笼', 'lantern'],
+      '🧧': ['红包', 'red envelope'],
+      '👔': ['领带', 'necktie'],
+      '👕': ['T恤', 'tshirt'],
+      '👗': ['裙子', 'dress'],
+      '👖': ['裤子', '牛仔裤', 'pants', 'jeans'],
+      '👟': ['运动鞋', 'sneaker'],
+      '👞': ['皮鞋', 'shoe'],
+      '🥾': ['登山鞋', 'hiking'],
+      '👝': ['小包', 'pouch'],
+      '👛': ['钱包', 'purse'],
+      '👜': ['手提包', 'bag'],
+      '🎒': ['背包', 'backpack'],
+      '👓': ['眼镜', 'glasses'],
+      '🧢': ['帽子', 'cap'],
+      '👑': ['皇冠', '王冠', 'crown', 'king'],
+      '📱': ['手机', 'phone', 'mobile'],
+      '💻': ['电脑', 'laptop'],
+      '🖥️': ['显示器', 'desktop'],
+      '🖨️': ['打印机', 'printer'],
+      '⌨️': ['键盘', 'keyboard'],
+      '🖱️': ['鼠标', 'mouse'],
+      '💾': ['软盘', 'floppy'],
+      '💿': ['光盘', 'cd'],
+      '📷': ['相机', 'camera'],
+      '📸': ['闪光灯', 'camera flash'],
+      '📹': ['录像', 'video'],
+      '📺': ['电视', 'tv'],
+      '📻': ['收音机', 'radio'],
+      '🎙️': ['麦克风', 'microphone'],
+      '⏱️': ['秒表', 'stopwatch'],
+      '⏲️': ['计时器', 'timer'],
+      '⏰': ['闹钟', 'alarm'],
+      '⏳': ['沙漏', 'hourglass'],
+      '📡': ['卫星', 'satellite'],
+      '🔋': ['电池', 'battery'],
+      '🔌': ['插头', 'plug'],
+      '💡': ['灯泡', 'idea', '灯'],
+      '🔦': ['手电筒', 'flashlight'],
+      '💸': ['钱', '飞走', 'money flying'],
+      '💰': ['钱袋', 'money bag'],
+      '💳': ['信用卡', 'credit card'],
+      '💎': ['宝石', 'gem', '钻石'],
+      '⚖️': ['天平', 'scale'],
+      '🔧': ['扳手', 'wrench'],
+      '🔨': ['锤子', 'hammer'],
+      '🔩': ['螺栓', 'nut and bolt'],
+      '⚙️': ['齿轮', 'gear'],
+      '🔪': ['刀', 'knife'],
+      '🗡️': ['剑', 'sword'],
+      '⚔️': ['剑', '交叉剑', 'crossed swords'],
+      '🛡️': ['盾牌', 'shield'],
+      '🔫': ['枪', 'gun'],
+      '💣': ['炸弹', 'bomb'],
+      '🏺': ['陶罐', 'amphora'],
+      '🔮': ['水晶球', 'fortune'],
+      '📿': ['念珠', 'prayer beads'],
+      '🔭': ['望远镜', 'telescope'],
+      '🔬': ['显微镜', 'microscope'],
+      '💊': ['药', 'pill'],
+      '💉': ['针', 'syringe'],
+      '🩹': ['创可贴', 'bandage'],
+      '⭐': ['星星', 'star'],
+      '🌟': ['星星', '闪闪', 'glowing star'],
+      '✨': ['星星', '闪亮', 'sparkles'],
+      '💫': ['星星', '旋转', 'dizzy'],
+      '⚡': ['闪电', 'electric', 'thunder'],
+      '☄️': ['彗星', 'comet'],
+      '💥': ['爆炸', 'explosion', 'boom'],
+      '🔴': ['红色', '圆点', 'red'],
+      '🟠': ['橙色', 'orange'],
+      '🟡': ['黄色', 'yellow'],
+      '🟢': ['绿色', 'green'],
+      '🔵': ['蓝色', 'blue'],
+      '🟣': ['紫色', 'purple'],
+      '⚫': ['黑色', 'black'],
+      '⚪': ['白色', 'white'],
+      '✅': ['勾', '对', 'check', 'yes'],
+      '✔️': ['勾', '打勾'],
+      '❌': ['叉', '错', 'cross', 'no', 'wrong'],
+      '❎': ['叉', 'cross mark'],
+      '➡️': ['箭头', '右', 'right'],
+      '⬅️': ['箭头', '左', 'left'],
+      '⬆️': ['箭头', '上', 'up'],
+      '⬇️': ['箭头', '下', 'down'],
+      '🔃': ['刷新', 'reload'],
+      '🔄': ['刷新', '循环', 'refresh'],
+      '🆕': ['新', 'new'],
+      '🆗': ['OK', '可以', 'okay'],
+      '🆙': ['UP', '上升'],
+      '🆒': ['酷', 'cool'],
+      '🆓': ['免费', 'free'],
+      '❗': ['感叹号', '警告', 'exclamation', 'warning'],
+      '❓': ['问号', '疑问', 'question'],
+      '💯': ['100', '满分', 'hundred'],
+      '💢': ['愤怒', '怒气', 'anger'],
+    };
+
+    // 分类映射
+    const EMOJI_MAP = {
+      'all': Object.keys(EMOJI_KEYWORDS),
+      '表情': ['😀','😃','😄','😁','😆','😅','😂','🤣','🥹','😊','😇','🙂','😉','😌','😍','🥰','😘','🥺','😭','😤','😡','🤬','😷','🤒','🤢','🤮','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🤔','🤫','🤭','🤪','😜','😝','😛','🤑','🤗','🤐','🤨','😐','😑','😶','🙄','😏','😣','😥','😢','😩','😫','🥱','😰','😱','😖','😔','😪','🤤','😴','🤧','🥵','🥶'],
+      '手势': ['👋','✋','👌','✌️','🤞','👈','👉','👆','👇','👍','👎','✊','👊','🤛','🤜','👏','🙌','🙏'],
+      '爱心': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝','💟'],
+      '动物': ['🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐴','🦄','🐍','🐢','🐙','🦀','🦐','🐠','🐟','🐬','🦈','🐳','🐾'],
+      '食物': ['🍕','🍔','🍟','🌭','🍿','🥓','🥚','🍳','🥞','🍞','🥐','🥖','🧀','🥗','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🍫','🍬','🍭'],
+      '水果': ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🌽','🥕','🥔'],
+      '植物': ['🌸','💐','🌹','🌻','🌼','🌷','🌱','🪴','🌲','🌳','🌴','🌵','🌾','🌿','☘️','🍀','🍃','🍂','🍁'],
+      '自然': ['🌈','☀️','🌤️','⛅','☁️','🌧️','⛈️','🌩️','❄️','☃️','⛄','🌬️','💨','🌪️','🌫️','🌊','💧','💦'],
+      '物品': ['📱','💻','🖥️','🖨️','⌨️','🖱️','💾','💿','📷','📸','📹','📺','📻','🎙️','⏱️','⏲️','⏰','⏳','📡','🔋','🔌','💡','🔦','💸','💰','💳','💎','⚖️','🔧','🔨','⚙️','🔪','🗡️','⚔️','🛡️','💣','🔮','📿','🔭','🔬','💊','💉','🩹'],
+      '符号': ['⭐','🌟','✨','💫','⚡','☄️','💥','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','✅','✔️','❌','❎','➡️','⬅️','⬆️','⬇️','🔃','🔄','🆕','🆗','🆙','🆒','🆓','❗','❓','💯','💢'],
+      '节日': ['🎃','🎄','🎆','🎇','🎁','🎀','🎊','🎉','🎈','🏮','🧧'],
+      '人物': ['👤','👥','👣','👀','👁️','👄','👅'],
+      '衣物': ['👔','👕','👗','👖','👟','👞','🥾','👝','👛','👜','🎒','👓','🧢','👑']
+    };
+
+    let currentCategory = 'all';
+    const searchInput = document.getElementById('searchInput');
+    const emojiGrid = document.getElementById('emojiGrid');
+    const stats = document.getElementById('stats');
+    const toast = document.getElementById('toast');
+
+    function renderEmojis(emojis) {
+      emojiGrid.innerHTML = '';
+      if (emojis.length === 0) {
+        stats.textContent = '未找到匹配的 Emoji';
+        return;
+      }
+      emojis.forEach(emoji => {
+        const item = document.createElement('div');
+        item.className = 'emoji-item';
+        item.textContent = emoji;
+        item.onclick = () => copyEmoji(item, emoji);
+        emojiGrid.appendChild(item);
+      });
+      stats.textContent = `共 ${emojis.length} 个 Emoji`;
+    }
+
+    function setCategory(btn, cat) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCategory = cat;
+      searchInput.value = '';
+      renderEmojis(EMOJI_MAP[cat] || []);
+    }
+
+    function copyEmoji(item, emoji) {
+      navigator.clipboard.writeText(emoji);
+      item.classList.add('copied');
+      showToast(`✅ 已复制 ${emoji}`);
+      setTimeout(() => item.classList.remove('copied'), 300);
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+
+    function searchEmojis(query) {
+      query = query.trim().toLowerCase();
+      if (!query) {
+        return EMOJI_MAP[currentCategory] || [];
+      }
+
+      // 如果搜索词匹配分类名
+      if (EMOJI_MAP[query]) {
+        return EMOJI_MAP[query];
+      }
+
+      // 按关键词搜索
+      const results = [];
+      for (const [emoji, keywords] of Object.entries(EMOJI_KEYWORDS)) {
+        for (const keyword of keywords) {
+          if (keyword.toLowerCase().includes(query)) {
+            results.push(emoji);
+            break;
+          }
+        }
+      }
+      return results;
+    }
+
+    searchInput.addEventListener('input', () => {
+      const results = searchEmojis(searchInput.value);
+      renderEmojis(results.slice(0, 100));
+    });
+
+    // Init
+    renderEmojis(EMOJI_MAP['all'].slice(0, 100));
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

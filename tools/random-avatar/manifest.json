@@ -1,0 +1,11 @@
+{
+  "id": "random-avatar",
+  "name": "随机头像",
+  "description": "生成有趣的随机头像",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["fun"],
+  "tags": ["头像", "随机", "生成器", "Fun"],
+  "features": ["随机生成", "多种风格", "下载保存"]
+}

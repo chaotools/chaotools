@@ -1,0 +1,17 @@
+{
+  "name": "chaotools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chaotools - 你的工具，你做主",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean"
+  },
+  "keywords": ["tools", "developer-tools", "monorepo"],
+  "author": "Chaotools",
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0"
+}

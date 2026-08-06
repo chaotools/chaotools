@@ -1,0 +1,11 @@
+{
+  "id": "json-formatter",
+  "name": "JSON 格式化",
+  "description": "JSON 数据格式化、压缩、校验",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["json", "格式化", "开发"],
+  "features": ["格式化", "压缩", "校验", "复制"]
+}

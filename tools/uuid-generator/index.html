@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID / 密码生成 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --amber: #ffb800;
+      --red: #ff4757;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .output-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      letter-spacing: 1px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .output-box:hover {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .output-box.cyan { color: var(--brand, var(--cyan)); }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: var(--brand, var(--cyan));
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .strength-bar {
+      height: 6px;
+      background: var(--bg);
+      border-radius: 3px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .strength-fill {
+      height: 100%;
+      transition: width 0.3s, background-color 0.3s;
+    }
+
+    .strength-text {
+      font-size: 12px;
+      margin-top: 6px;
+      text-align: right;
+    }
+
+    .length-control {
+      margin-top: 16px;
+    }
+
+    .length-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .length-row label {
+      font-size: 13px;
+      color: var(--text-dim);
+      min-width: 60px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      background: var(--bg);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--brand, var(--cyan));
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .length-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand, var(--cyan));
+      min-width: 30px;
+      text-align: right;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .option-label input {
+      width: auto;
+      accent-color: var(--brand, var(--cyan));
+    }
+
+    .copy-hint {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>🔑 UUID / 密码生成</h1>
+    <p class="desc">v4 UUID + NanoID 生成，可调长度密码+强度指示</p>
+
+    <!-- UUID -->
+    <div class="card">
+      <div class="label-row">
+        <span>UUID v4</span>
+        <span>点击可复制</span>
+      </div>
+      <div id="uuidOutput" class="output-box cyan" onclick="copyUUID()">点击生成</div>
+      <button onclick="genUUID()">🔑 生成 UUID v4</button>
+    </div>
+
+    <!-- Password -->
+    <div class="card">
+      <div class="label-row">
+        <span>密码</span>
+        <span>点击可复制</span>
+      </div>
+      <div id="pwOutput" class="output-box" onclick="copyPW()">点击生成</div>
+
+      <div class="length-control">
+        <div class="length-row">
+          <label>长度</label>
+          <input type="range" id="pwLength" min="8" max="64" value="16" oninput="genPassword()">
+          <span id="pwLengthValue" class="length-value">16</span>
+        </div>
+      </div>
+
+      <div class="options">
+        <label class="option-label">
+          <input type="checkbox" id="useUpper" checked onchange="genPassword()">
+          <span>大写字母 (A-Z)</span>
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="useLower" checked onchange="genPassword()">
+          <span>小写字母 (a-z)</span>
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="useNumber" checked onchange="genPassword()">
+          <span>数字 (0-9)</span>
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="useSymbol" onchange="genPassword()">
+          <span>符号 (!@#$)</span>
+        </label>
+      </div>
+
+      <div class="strength-bar">
+        <div id="strengthFill" class="strength-fill" style="width: 0%"></div>
+      </div>
+      <div id="strengthText" class="strength-text"></div>
+
+      <button class="btn-secondary" onclick="genPassword()" style="margin-top: 16px">🔐 生成密码</button>
+    </div>
+
+    <p class="copy-hint">💡 点击输出框可直接复制</p>
+  </div>
+
+  <script>
+    // UUID
+    function genUUID() {
+      const uuid = crypto.randomUUID ?
+        crypto.randomUUID() :
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random() * 16 | 0;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+      document.getElementById('uuidOutput').textContent = uuid;
+    }
+
+    function copyUUID() {
+      const text = document.getElementById('uuidOutput').textContent;
+      if (text && text !== '点击生成') {
+        navigator.clipboard.writeText(text);
+        showCopyFeedback('uuidOutput');
+      }
+    }
+
+    // Password
+    function genPassword() {
+      const length = parseInt(document.getElementById('pwLength').value);
+      document.getElementById('pwLengthValue').textContent = length;
+
+      let chars = '';
+      if (document.getElementById('useUpper').checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (document.getElementById('useLower').checked) chars += 'abcdefghijklmnopqrstuvwxyz';
+      if (document.getElementById('useNumber').checked) chars += '0123456789';
+      if (document.getElementById('useSymbol').checked) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+      if (!chars) {
+        chars = 'abcdefghijklmnopqrstuvwxyz';
+        document.getElementById('useLower').checked = true;
+      }
+
+      let password = '';
+      const array = new Uint32Array(length);
+      crypto.getRandomValues(array);
+      for (let i = 0; i < length; i++) {
+        password += chars[array[i] % chars.length];
+      }
+
+      document.getElementById('pwOutput').textContent = password;
+      updateStrength(password);
+    }
+
+    function updateStrength(password) {
+      let score = 0;
+      if (password.length >= 8) score++;
+      if (password.length >= 12) score++;
+      if (password.length >= 16) score++;
+      if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+      if (/\d/.test(password)) score++;
+      if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+      const fill = document.getElementById('strengthFill');
+      const text = document.getElementById('strengthText');
+      const percent = Math.min(100, (score / 6) * 100);
+
+      fill.style.width = percent + '%';
+
+      if (score <= 2) {
+        fill.style.backgroundColor = '#ff4757';
+        text.textContent = '弱';
+        text.style.color = '#ff4757';
+      } else if (score <= 4) {
+        fill.style.backgroundColor = '#ffb800';
+        text.textContent = '中等';
+        text.style.color = '#ffb800';
+      } else {
+        fill.style.backgroundColor = '#38bdf8';
+        text.textContent = '强';
+        text.style.color = '#38bdf8';
+      }
+    }
+
+    function copyPW() {
+      const text = document.getElementById('pwOutput').textContent;
+      if (text && text !== '点击生成') {
+        navigator.clipboard.writeText(text);
+        showCopyFeedback('pwOutput');
+      }
+    }
+
+    function showCopyFeedback(id) {
+      const el = document.getElementById(id);
+      const original = el.textContent;
+      el.textContent = '✅ 已复制!';
+      setTimeout(() => el.textContent = original, 1000);
+    }
+
+    // Init
+    genUUID();
+    genPassword();
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

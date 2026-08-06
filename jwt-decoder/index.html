@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT 解码器 - Chaotools</title>
+  <style>
+    :root { --bg: #0a0e17; --surface: #111a2e; --border: rgba(56,189,248,.08); --border-hover: rgba(56,189,248,.2); --cyan: #38bdf8; --cyan-dim: rgba(56,189,248,.08); --text: #e2e8f0; --text-dim: #7f8ea3; --radius: 12px; --red: #ef4444; --green: #34d399; --orange: #f59e0b; --green-dim: rgba(52,211,153,.1); --red-dim: rgba(239,68,68,.1); --orange-dim: rgba(245,158,11,.1); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 720px; margin: 0 auto; padding: 60px 20px 40px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); text-decoration: none; font-size: 14px; margin-bottom: 20px; transition: color .2s; }
+    .back:hover { color: var(--brand, var(--cyan)); }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; background: linear-gradient(135deg,#38bdf8,#818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 6px; }
+    .privacy-note { display: inline-flex; align-items: center; gap: 4px; color: var(--green); font-size: 12px; margin-bottom: 24px; background: var(--green-dim); padding: 4px 12px; border-radius: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; display: flex; justify-content: space-between; align-items: center; }
+    textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; padding: 12px; outline: none; font-family: "SF Mono", "Fira Code", monospace; resize: vertical; min-height: 80px; transition: border-color .2s; }
+    textarea:focus { border-color: var(--brand, var(--cyan)); }
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .pill-green { background: var(--green-dim); color: var(--green); }
+    .pill-red { background: var(--red-dim); color: var(--red); }
+    .pill-orange { background: var(--orange-dim); color: var(--orange); }
+    .payload { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+    .json-key { color: #7dd3fc; }
+    .json-string { color: #a5d6a7; }
+    .json-number { color: #ffcc80; }
+    .json-bool { color: #ce93d8; }
+    .json-null { color: #ef9a9a; }
+    .section { margin-top: 14px; }
+    .section:first-child { margin-top: 0; }
+    .claim-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 13px; margin-top: 8px; }
+    .claim-key { color: var(--text-dim); font-family: monospace; }
+    .claim-value { color: var(--text); word-break: break-all; }
+    .empty-state { text-align: center; padding: 40px 0; color: var(--text-dim); font-size: 14px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border-hover); padding: 10px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .header-parts { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .part-chip { font-family: monospace; font-size: 11px; padding: 4px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: var(--text-dim); word-break: break-all; }
+    .part-chip .label { color: var(--brand, var(--cyan)); }
+    @media (max-width: 480px) { .container { padding: 40px 16px 30px; } }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container"><h1>🔐 JWT 解码器</h1>
+    <p class="subtitle">解析 JSON Web Token，查看 Header 和 Payload</p>
+    <div class="privacy-note">🔒 纯本地解码，不会发送任何网络请求</div>
+
+    <div class="card">
+      <textarea id="jwtInput" placeholder="粘贴 JWT Token 到这里...&#10;例如：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkplYW4ifQ.xYZ"></textarea>
+    </div>
+
+    <div id="resultArea">
+      <div class="empty-state">粘贴 JWT 后自动解码</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const jwtInput = document.getElementById('jwtInput');
+    const resultArea = document.getElementById('resultArea');
+    const toast = document.getElementById('toast');
+
+    let toastTimer;
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    function base64UrlDecode(str) {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) str += '=';
+      try { return atob(str); } catch (e) { return null; }
+    }
+
+    function syntaxHighlight(json) {
+      return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+        .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+        .replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+        .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>')
+        .replace(/: (null)/g, ': <span class="json-null">$1</span>');
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function decodeJWT() {
+      const token = jwtInput.value.trim();
+      if (!token) {
+        resultArea.innerHTML = '<div class="empty-state">粘贴 JWT 后自动解码</div>';
+        return;
+      }
+
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        resultArea.innerHTML = `<div class="card"><div class="card-title" style="color:var(--red)">格式错误</div><div style="color:var(--text-dim);font-size:14px">无效的 JWT 格式。JWT 应由三个点分隔的部分组成（header.payload.signature）</div></div>`;
+        return;
+      }
+
+      const headerRaw = base64UrlDecode(parts[0]);
+      const payloadRaw = base64UrlDecode(parts[1]);
+
+      if (!headerRaw || !payloadRaw) {
+        resultArea.innerHTML = `<div class="card"><div class="card-title" style="color:var(--red)">解码失败</div><div style="color:var(--text-dim);font-size:14px">Base64 解码失败，请检查 Token 格式</div></div>`;
+        return;
+      }
+
+      let header, payload;
+      try { header = JSON.parse(headerRaw); } catch (e) { header = null; }
+      try { payload = JSON.parse(payloadRaw); } catch (e) { payload = null; }
+
+      if (!header || !payload) {
+        resultArea.innerHTML = `<div class="card"><div class="card-title" style="color:var(--red)">解析失败</div><div style="color:var(--text-dim);font-size:14px">解码后的内容不是有效的 JSON</div></div>`;
+        return;
+      }
+
+      // Check expiration
+      const now = Math.floor(Date.now() / 1000);
+      const exp = payload.exp;
+      const nbf = payload.nbf;
+      let expiresIn = null;
+      let expired = false;
+      if (exp) {
+        expired = now > exp;
+        if (!expired) {
+          const diff = exp - now;
+          if (diff < 3600) expiresIn = `${Math.floor(diff / 60)} 分钟`;
+          else if (diff < 86400) expiresIn = `${Math.floor(diff / 3600)} 小时`;
+          else expiresIn = `${Math.floor(diff / 86400)} 天`;
+        }
+      }
+
+      // Build display
+      let html = '';
+
+      // Token parts
+      html += `<div class="card"><div class="card-title">Token 分段</div><div class="header-parts">`;
+      html += `<span class="part-chip"><span class="label">Header:</span> ${parts[0].substring(0, 40)}${parts[0].length > 40 ? '…' : ''}</span>`;
+      html += `<span class="part-chip"><span class="label">Payload:</span> ${parts[1].substring(0, 40)}${parts[1].length > 40 ? '…' : ''}</span>`;
+      html += `<span class="part-chip"><span class="label">Signature:</span> ${parts[2].substring(0, 16)}${parts[2].length > 16 ? '…' : ''}</span>`;
+      html += `</div></div>`;
+
+      // Header
+      html += `<div class="card"><div class="card-title">Header</div><div class="payload">${syntaxHighlight(JSON.stringify(header, null, 2))}</div></div>`;
+
+      // Payload
+      html += `<div class="card">`;
+      html += `<div class="card-title">Payload <span id="expiryBadge"></span></div>`;
+
+      // Expiry status
+      if (exp) {
+        const expDate = new Date(exp * 1000);
+        const badge = expired
+          ? `<span class="pill pill-red">已过期</span>`
+          : expiresIn
+            ? `<span class="pill pill-green">有效 · ${expiresIn}后过期</span>`
+            : `<span class="pill pill-green">有效</span>`;
+        html = html.replace('<span id="expiryBadge"></span>', badge);
+      } else {
+        html = html.replace('<span id="expiryBadge"></span>', '');
+      }
+
+      html += `<div class="payload">${syntaxHighlight(JSON.stringify(payload, null, 2))}</div>`;
+
+      // Standard claims summary
+      const stdClaims = ['iss', 'sub', 'aud', 'exp', 'nbf', 'iat', 'jti'];
+      const hasClaims = stdClaims.some(c => payload[c] !== undefined);
+      if (hasClaims) {
+        html += `<div class="section"><div class="card-title" style="font-size:12px;margin-bottom:8px">标准声明</div><div class="claim-grid">`;
+        for (const claim of stdClaims) {
+          if (payload[claim] !== undefined) {
+            let val = payload[claim];
+            if (claim === 'exp' || claim === 'nbf' || claim === 'iat') {
+              val = `${val} (${new Date(val * 1000).toISOString()})`;
+            }
+            html += `<span class="claim-key">${escapeHtml(claim)}:</span><span class="claim-value">${escapeHtml(val)}</span>`;
+          }
+        }
+        html += `</div></div>`;
+      }
+
+      html += `</div>`;
+
+      resultArea.innerHTML = html;
+    }
+
+    let debounceTimer;
+    jwtInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(decodeJWT, 200);
+    });
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

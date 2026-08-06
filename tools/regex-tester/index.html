@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>正则测试器 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --red: #ff4757;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+    }
+
+    .regex-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .regex-delimiter {
+      font-size: 20px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .flags {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .flag-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .flag-label input {
+      width: auto;
+      accent-color: var(--brand, var(--cyan));
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      min-height: 100px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .match {
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--brand, var(--cyan));
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    .no-match {
+      color: var(--red);
+    }
+
+    .match-info {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .templates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .template-btn {
+      padding: 6px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-dim);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .template-btn:hover {
+      border-color: var(--brand, var(--cyan));
+      color: var(--text);
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>🔍 正则测试器</h1>
+    <p class="desc">在线正则表达式测试，支持常用模板</p>
+
+    <div class="card">
+      <label>正则表达式</label>
+      <div class="regex-input-wrapper">
+        <span class="regex-delimiter">/</span>
+        <input type="text" id="regexInput" placeholder="输入正则表达式，如: \d+" value="">
+        <span class="regex-delimiter">/</span>
+        <span id="flagsDisplay" style="color: var(--brand, var(--cyan)); font-family: 'JetBrains Mono', monospace;">g</span>
+      </div>
+
+      <div class="flags">
+        <label class="flag-label">
+          <input type="checkbox" id="flagG" checked onchange="updateFlags()">
+          <span>g</span>
+          <span style="color: var(--text-dim); font-size: 11px;">全局</span>
+        </label>
+        <label class="flag-label">
+          <input type="checkbox" id="flagI" onchange="updateFlags()">
+          <span>i</span>
+          <span style="color: var(--text-dim); font-size: 11px;">忽略大小写</span>
+        </label>
+        <label class="flag-label">
+          <input type="checkbox" id="flagM" onchange="updateFlags()">
+          <span>m</span>
+          <span style="color: var(--text-dim); font-size: 11px;">多行</span>
+        </label>
+      </div>
+
+      <label>常用模板</label>
+      <div class="templates">
+        <button class="template-btn" onclick="setPattern('\\d+')">数字</button>
+        <button class="template-btn" onclick="setPattern('\\w+')">单词</button>
+        <button class="template-btn" onclick="setPattern('[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')">邮箱</button>
+        <button class="template-btn" onclick="setPattern('https?://[\\w\\-]+(\\.[\\w\\-]+)+[/#?]?.*')">URL</button>
+        <button class="template-btn" onclick="setPattern('1[3-9]\\d{9}')">手机号</button>
+        <button class="template-btn" onclick="setPattern('\\d{4}-\\d{2}-\\d{2}')">日期</button>
+        <button class="template-btn" onclick="setPattern('^\\d+$')">纯数字</button>
+        <button class="template-btn" onclick="setPattern('^[a-zA-Z]+$')">纯字母</button>
+      </div>
+
+      <label>测试文本</label>
+      <textarea id="testInput" placeholder="输入测试文本...">示例文本: 订单号12345，手机号13812345678，邮箱test@example.com</textarea>
+    </div>
+
+    <div class="card">
+      <label>匹配结果</label>
+      <div id="output" class="output">输入正则表达式查看匹配结果</div>
+      <div id="matchInfo" class="match-info"></div>
+    </div>
+  </div>
+
+  <script>
+    const regexInput = document.getElementById('regexInput');
+    const testInput = document.getElementById('testInput');
+    const output = document.getElementById('output');
+    const matchInfo = document.getElementById('matchInfo');
+    const flagsDisplay = document.getElementById('flagsDisplay');
+
+    let debounceTimer;
+
+    function updateFlags() {
+      let flags = '';
+      if (document.getElementById('flagG').checked) flags += 'g';
+      if (document.getElementById('flagI').checked) flags += 'i';
+      if (document.getElementById('flagM').checked) flags += 'm';
+      flagsDisplay.textContent = flags || '无';
+      runTest();
+    }
+
+    function setPattern(pattern) {
+      regexInput.value = pattern;
+      runTest();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function runTest() {
+      const pattern = regexInput.value;
+      const text = testInput.value;
+
+      if (!pattern) {
+        output.textContent = '输入正则表达式查看匹配结果';
+        output.className = 'output';
+        matchInfo.textContent = '';
+        return;
+      }
+
+      let flags = '';
+      if (document.getElementById('flagG').checked) flags += 'g';
+      if (document.getElementById('flagI').checked) flags += 'i';
+      if (document.getElementById('flagM').checked) flags += 'm';
+
+      try {
+        const regex = new RegExp(pattern, flags);
+        const matches = [];
+        let match;
+
+        if (flags.includes('g')) {
+          while ((match = regex.exec(text)) !== null) {
+            matches.push({
+              value: match[0],
+              index: match.index,
+              groups: match.slice(1)
+            });
+            if (match[0].length === 0) regex.lastIndex++;
+          }
+        } else {
+          match = regex.exec(text);
+          if (match) {
+            matches.push({
+              value: match[0],
+              index: match.index,
+              groups: match.slice(1)
+            });
+          }
+        }
+
+        if (matches.length === 0) {
+          output.innerHTML = `<span class="no-match">❌ 正则错误: 无匹配结果</span>`;
+          matchInfo.textContent = '';
+        } else {
+          let result = escapeHtml(text);
+          // 从后往前替换，避免索引偏移
+          matches.slice().reverse().forEach(m => {
+            const before = result.slice(0, m.index);
+            const after = result.slice(m.index + m.value.length);
+            result = before + `<span class="match">${escapeHtml(m.value)}</span>` + after;
+          });
+          output.innerHTML = result;
+
+          matchInfo.textContent = `匹配 ${matches.length} 个结果`;
+        }
+
+      } catch (e) {
+        output.innerHTML = `<span class="no-match">❌ 正则错误: ${escapeHtml(e.message)}</span>`;
+        matchInfo.textContent = '';
+      }
+    }
+
+    regexInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(runTest, 200);
+    });
+
+    testInput.addEventListener('input', runTest);
+
+    // 初始化
+    runTest();
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

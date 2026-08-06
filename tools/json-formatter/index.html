@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 格式化 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --surface-hover: #111d33;
+      --border: rgba(56, 189, 248, 0.10);
+      --border-hover: rgba(56, 189, 248, 0.25);
+      --brand: #38bdf8;
+      --brand-dim: rgba(56, 189, 248, 0.12);
+      --text: #e2e8f0;
+      --text-dim: #7f8ea3;
+      --red: #f87171;
+      --green: #4ade80;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.3); }
+      50%      { box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.08); }
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to   { opacity: 0; transform: translateY(-8px) scale(0.96); }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 50% 0%, rgba(56,189,248,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(56,189,248,0.03) 0%, transparent 40%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 4px;
+    }
+
+    .header .icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--brand-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      border: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 26px; font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, var(--brand) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .desc {
+      color: var(--text-dim); font-size: 14px;
+      margin: 4px 0 24px 58px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .card:focus-within {
+      border-color: var(--border-hover);
+      box-shadow: 0 0 30px rgba(56,189,248,0.04);
+    }
+
+    label {
+      display: block; font-size: 13px; font-weight: 600;
+      margin-bottom: 8px; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    textarea {
+      width: 100%; min-height: 200px;
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 13.5px; line-height: 1.7;
+      font-family: var(--font-mono);
+      resize: vertical; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.10);
+    }
+
+    textarea::placeholder { color: var(--text-dim); opacity: 0.6; }
+
+    .btn-group {
+      display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap;
+    }
+
+    button {
+      padding: 9px 18px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600; font-family: var(--font-sans);
+      cursor: pointer; border: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative; overflow: hidden;
+    }
+
+    button:active { transform: scale(0.96); }
+
+    .btn-primary {
+      background: var(--brand); color: #071018;
+      box-shadow: 0 2px 8px rgba(56,189,248,0.25);
+    }
+    .btn-primary:hover {
+      background: #4cc7fa;
+      box-shadow: 0 4px 16px rgba(56,189,248,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      background: var(--surface-hover);
+      transform: translateY(-1px);
+    }
+
+    .output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 13px; line-height: 1.7;
+      min-height: 80px;
+      white-space: pre-wrap; word-break: break-all;
+      transition: border-color 0.2s;
+    }
+
+    .output.success { border-color: rgba(74,222,128,0.3); color: var(--text); }
+    .output.error   { border-color: rgba(248,113,113,0.3); color: var(--red); }
+
+    .copy-hint {
+      font-size: 12px; color: var(--text-dim);
+      margin-top: 10px; cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 20px;
+      transition: all 0.2s;
+    }
+    .copy-hint:hover { color: var(--brand); background: var(--brand-dim); }
+
+    .stats {
+      display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+    }
+
+    .stat {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 12px; color: var(--text-dim);
+      display: flex; align-items: center; gap: 6px;
+      transition: border-color 0.2s;
+    }
+
+    .stat:hover { border-color: var(--border-hover); }
+
+    .stat-value {
+      color: var(--brand); font-family: var(--font-mono);
+      font-size: 13px; font-weight: 600;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 9999;
+      padding: 10px 20px; border-radius: 24px;
+      font-size: 13px; font-weight: 600;
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(12px);
+      border: 1px solid;
+    }
+    #toast.show { animation: toastIn 0.3s ease-out forwards; }
+    #toast.hide { animation: toastOut 0.25s ease-in forwards; }
+    #toast.success { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: var(--green); }
+    #toast.error   { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); color: var(--red); }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div id="toast"></div>
+
+  <div class="container">
+    <div class="header">
+      <div class="icon">🔧</div>
+      <h1>JSON 格式化</h1>
+    </div>
+    <p class="desc">JSON 格式化、压缩、校验，高亮语法错误，一键复制</p>
+
+    <div class="card">
+      <label>输入 JSON</label>
+      <textarea id="input" placeholder="粘贴 JSON 内容..." spellcheck="false"></textarea>
+
+      <div class="btn-group">
+        <button class="btn-primary" onclick="formatJSON()">✨ 格式化</button>
+        <button class="btn-secondary" onclick="minifyJSON()">⏩ 压缩</button>
+        <button class="btn-secondary" onclick="validateJSON()">✅ 校验</button>
+        <button class="btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+      </div>
+
+      <label>输出结果</label>
+      <div id="output" class="output">等待输入...</div>
+      <span class="copy-hint" onclick="copyOutput()">📋 点击复制结果</span>
+
+      <div class="stats">
+        <span class="stat">字符 <span id="charCount" class="stat-value">0</span></span>
+        <span class="stat">行数 <span id="lineCount" class="stat-value">0</span></span>
+        <span class="stat">字节 <span id="byteCount" class="stat-value">0</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('input');
+    const output = document.getElementById('output');
+    let toastTimer;
+
+    function showToast(msg, type) {
+      const t = document.getElementById('toast');
+      clearTimeout(toastTimer);
+      t.textContent = msg;
+      t.className = type + ' show';
+      toastTimer = setTimeout(() => { t.className = type + ' hide'; }, 2000);
+    }
+
+    input.addEventListener('input', updateStats);
+
+    function formatJSON() {
+      const val = input.value.trim();
+      if (!val) { showOutput('请输入 JSON 内容', 'error'); return; }
+      try {
+        const obj = JSON.parse(val);
+        const formatted = JSON.stringify(obj, null, 2);
+        showOutput(formatted, 'success');
+        showToast('格式化完成', 'success');
+      } catch (e) {
+        showOutput('❌ JSON 解析错误: ' + e.message, 'error');
+        showToast('JSON 格式错误', 'error');
+      }
+    }
+
+    function minifyJSON() {
+      const val = input.value.trim();
+      if (!val) { showOutput('请输入 JSON 内容', 'error'); return; }
+      try {
+        const obj = JSON.parse(val);
+        showOutput(JSON.stringify(obj), 'success');
+        showToast('压缩完成', 'success');
+      } catch (e) {
+        showOutput('❌ JSON 解析错误: ' + e.message, 'error');
+        showToast('JSON 格式错误', 'error');
+      }
+    }
+
+    function validateJSON() {
+      const val = input.value.trim();
+      if (!val) { showOutput('请输入 JSON 内容', 'error'); return; }
+      try {
+        JSON.parse(val);
+        showOutput('✅ JSON 格式正确！', 'success');
+        showToast('格式校验通过', 'success');
+      } catch (e) {
+        showOutput('❌ JSON 解析错误: ' + e.message, 'error');
+        showToast('格式校验失败', 'error');
+      }
+    }
+
+    function clearAll() {
+      input.value = '';
+      output.textContent = '等待输入...';
+      output.className = 'output';
+      updateStats();
+      showToast('已清空', 'success');
+    }
+
+    function showOutput(text, type) {
+      output.textContent = text;
+      output.className = 'output ' + type;
+    }
+
+    function updateStats() {
+      const val = input.value;
+      document.getElementById('charCount').textContent = val.length;
+      document.getElementById('lineCount').textContent = val ? val.split('\n').length : 0;
+      document.getElementById('byteCount').textContent = new Blob([val]).size;
+    }
+
+    function copyOutput() {
+      const text = output.textContent;
+      if (text && text !== '等待输入...' && !text.startsWith('❌')) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('✅ 已复制到剪贴板', 'success');
+        });
+      } else {
+        showToast('没有可复制的内容', 'error');
+      }
+    }
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

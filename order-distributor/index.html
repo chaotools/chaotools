@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单数分配助手 · 按播放量占比公平分配 · Chaotools</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f5f7fb;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .app {
+            max-width: 1200px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            padding: 28px 32px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 small {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-left: auto;
+        }
+        .subtitle {
+            color: #475569;
+            margin-bottom: 28px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 16px;
+            background: #f8fafc;
+            border-radius: 0 12px 12px 0;
+            line-height: 1.5;
+        }
+        .panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .panel h2 {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin: 0 0 16px 0;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .employee-mgr {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .employee-mgr input {
+            flex: 2 1 250px;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .employee-mgr input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 8px rgba(59,130,246,0.2);
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-outline {
+            background: white;
+            border-color: #cbd5e1;
+        }
+        .btn-outline:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .btn-warning {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .btn-warning:hover {
+            background: #fecaca;
+        }
+        .employee-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 16px 0 8px;
+        }
+        .tag {
+            background: #eef2ff;
+            color: #1e3a8a;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tag .remove {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            line-height: 1;
+            cursor: pointer;
+            color: #4b5563;
+            padding: 0 4px;
+        }
+        .tag .remove:hover {
+            color: #b91c1c;
+        }
+        .daily-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .input-group {
+            margin-bottom: 16px;
+        }
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #334155;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            font-size: 1rem;
+        }
+        .employee-playlog {
+            background: #f9f9fc;
+            border-radius: 24px;
+            padding: 18px;
+            margin-top: 12px;
+            border: 1px dashed #cbd5e1;
+        }
+        .play-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .play-row .name {
+            width: 100px;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .play-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 30px;
+            font-size: 0.95rem;
+        }
+        .result-area {
+            background: #0f172a;
+            color: white;
+            border-radius: 24px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 20px;
+            color: #94a3b8;
+        }
+        .result-header h3 {
+            color: white;
+            margin: 0;
+            font-weight: 500;
+        }
+        .result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .result-item .name {
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+        }
+        .result-item .name small {
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        .result-item .value {
+            background: #1e293b;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+        }
+        .total-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 2px solid #334155;
+            font-weight: 600;
+            color: #facc15;
+        }
+        .history-list {
+            margin-top: 24px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 12px;
+            background: #fcfcfd;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid #edf2f7;
+            cursor: pointer;
+            border-radius: 12px;
+        }
+        .history-item:hover {
+            background: #f1f5f9;
+        }
+        .history-date {
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .history-summary {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .footer-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* 周统计表格样式 */
+        .weekly-stats {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .weekly-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 600px;
+        }
+        .weekly-table th {
+            background: #f1f5f9;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+        }
+        .weekly-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .weekly-table tr:last-child td {
+            background: #f8fafc;
+            font-weight: 500;
+        }
+        .employee-name {
+            font-weight: 500;
+            background: #f9f9fc;
+            position: sticky;
+            left: 0;
+        }
+        .week-value {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .week-play {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+        .week-orders {
+            color: #10b981;
+        }
+        .total-cell {
+            background: #eef2ff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+<div class="app" id="app">
+    <h1>
+        🎬 抖音单量分配器
+        <small>按播放量占比 · 最大余额法 + 周统计 + 导出Excel</small>
+    </h1>
+    <div class="subtitle">
+        每天录入员工播放量 + 总单数，系统自动公平分配整数单量，并保存历史记录。可生成周度汇总并导出CSV。
+    </div>
+
+    <!-- 员工管理面板 -->
+    <div class="panel">
+        <h2>👥 员工管理</h2>
+        <div class="employee-mgr">
+            <input type="text" id="newEmployeeName" placeholder="输入员工姓名，例如: 张三" v-model="newName" @keyup.enter="addEmployee">
+            <button class="btn btn-primary" @click="addEmployee">➕ 添加</button>
+            <button class="btn btn-outline" @click="loadExample">📋 载入示例</button>
+        </div>
+        <div class="employee-tags">
+            <div v-for="(emp, idx) in employees" :key="emp" class="tag">
+                {{ emp }}
+                <button class="remove" @click="removeEmployee(idx)">✕</button>
+            </div>
+            <span v-if="employees.length === 0" style="color: #94a3b8;">暂无员工，请添加</span>
+        </div>
+    </div>
+
+    <!-- 每日录入 & 计算结果 -->
+    <div class="panel">
+        <h2>📅 今日数据录入</h2>
+        <div class="daily-section">
+            <!-- 左侧：播放量 + 总单数 -->
+            <div>
+                <div class="input-group">
+                    <label>📊 后台总单数 (T)</label>
+                    <input type="number" id="totalOrders" min="0" step="1" v-model.number="totalOrders" placeholder="例如: 100">
+                </div>
+                <div class="employee-playlog">
+                    <div v-for="emp in employees" :key="emp" class="play-row">
+                        <span class="name">{{ emp }}</span>
+                        <input type="number" min="0" step="1" :placeholder="'播放量'" v-model.number="playData[emp]">
+                    </div>
+                    <div v-if="employees.length === 0" style="color: #aaa; text-align: center; padding: 20px;">
+                        请先在上方添加员工
+                    </div>
+                </div>
+                <div style="margin-top: 16px; display: flex; gap: 8px;">
+                    <button class="btn btn-primary" @click="calculate" :disabled="!canCalculate">⚡ 计算今日分配</button>
+                    <button class="btn btn-outline" @click="resetToday">🔄 重置</button>
+                </div>
+            </div>
+
+            <!-- 右侧：结果预览（含播放量占比） -->
+            <div v-if="result && result.length > 0" class="result-area">
+                <div class="result-header">
+                    <h3>✅ 分配结果</h3>
+                    <span>总单数 {{ totalOrders }}</span>
+                </div>
+                <div class="result-list">
+                    <div v-for="item in result" :key="item.name" class="result-item">
+                        <span class="name">
+                            {{ item.name }}
+                            <small v-if="totalPlay > 0">
+                                播放 {{ playData[item.name] }} ({{ ((playData[item.name] / totalPlay) * 100).toFixed(1) }}%)
+                            </small>
+                            <small v-else>播放 0 (0%)</small>
+                        </span>
+                        <span class="value">{{ item.assigned }}</span>
+                    </div>
+                </div>
+                <div class="total-info">
+                    <span>总播放量</span>
+                    <span>{{ totalPlay }}</span>
+                </div>
+                <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: space-between;">
+                    <button class="btn btn-outline" style="background:#2d3a4e; color:white; border: none;" @click="saveHistory">💾 保存今日记录</button>
+                    <button class="btn btn-success" @click="exportDailyToCSV" v-if="result">📥 导出今日结果</button>
+                </div>
+            </div>
+            <div v-else class="result-area" style="background:#1e293b; justify-content:center; align-items:center; display:flex; opacity:0.6;">
+                <span style="color:#94a3b8;">填写数据后点击“计算”</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史记录面板 -->
+    <div class="panel">
+        <h2>📆 历史分配记录</h2>
+        <div class="history-list" id="historyList">
+            <div v-for="(rec, index) in history" :key="rec.date" class="history-item" @click="loadHistory(index)">
+                <span class="history-date">{{ rec.date }}</span>
+                <span class="history-summary">总单 {{ rec.totalOrders }} → {{ rec.summary }}</span>
+            </div>
+            <div v-if="history.length === 0" style="color:#94a3b8; text-align:center; padding:20px;">
+                暂无历史记录，计算后可保存
+            </div>
+        </div>
+        <div class="footer-actions">
+            <button class="btn btn-warning" @click="clearHistory" v-if="history.length">🗑️ 清空所有历史</button>
+        </div>
+    </div>
+
+    <!-- 周统计面板（新增） -->
+    <div class="panel" v-if="history.length > 0">
+        <h2>📊 周统计</h2>
+        <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+            <button class="btn btn-primary" @click="computeWeeklyStats">📈 生成周统计</button>
+            <button class="btn btn-success" @click="exportWeeklyToCSV" v-if="weeklyStatsCols.length > 0">📥 导出周统计</button>
+        </div>
+        <div v-if="weeklyStatsCols.length > 0" class="weekly-stats">
+            <table class="weekly-table">
+                <thead>
+                    <tr>
+                        <th>员工</th>
+                        <th v-for="week in weeklyStatsCols" :key="week">{{ week }}</th>
+                        <th>总计</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="row in weeklyStatsRows" :key="row.name">
+                        <td class="employee-name">{{ row.name }}</td>
+                        <td v-for="week in weeklyStatsCols" :key="week">
+                            <div class="week-value" v-if="row.weeks[week]">
+                                <span class="week-play">{{ row.weeks[week].play }}</span>
+                                <span class="week-orders">{{ row.weeks[week].orders }}</span>
+                            </div>
+                            <span v-else>—</span>
+                        </td>
+                        <td class="total-cell">
+                            <div class="week-value">
+                                <span class="week-play">{{ row.totalPlay }}</span>
+                                <span class="week-orders">{{ row.totalOrders }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- 每周合计行 -->
+                    <tr>
+                        <td class="employee-name">📌 每周合计</td>
+                        <td v-for="week in weeklyStatsCols" :key="week">
+                            <div class="week-value" v-if="weeklyTotals[week]">
+                                <span class="week-play">{{ weeklyTotals[week].play }}</span>
+                                <span class="week-orders">{{ weeklyTotals[week].orders }}</span>
+                            </div>
+                            <span v-else>—</span>
+                        </td>
+                        <td class="total-cell">
+                            <div class="week-value">
+                                <span class="week-play">{{ grandTotalPlay }}</span>
+                                <span class="week-orders">{{ grandTotalOrders }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="color:#64748b; font-size:0.85rem; margin-top:12px;">单元格内上一行为周播放量，下一行为周总单数。</p>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
+<script>
+    const { createApp, ref, reactive, computed, watch } = Vue;
+
+    const app = createApp({
+        setup() {
+            // ---------- 数据定义 ----------
+            const employees = ref([]);               // 员工姓名数组
+            const newName = ref('');
+            const totalOrders = ref(0);
+            const playData = reactive({});            // 员工 -> 播放量
+            const result = ref(null);                  // 计算结果 [{name, assigned}]
+            const history = ref([]);                    // 历史记录数组
+
+            // 周统计相关
+            const weeklyStatsCols = ref([]);            // 周标识数组 ['2025-08','2025-09']
+            const weeklyStatsRows = ref([]);            // 员工行数据 [{ name, weeks: { weekKey: {play,orders} }, totalPlay, totalOrders }]
+            const weeklyTotals = ref({});                // 每周合计 { weekKey: {play, orders} }
+            const grandTotalPlay = ref(0);
+            const grandTotalOrders = ref(0);
+
+            // ---------- 初始化：从 localStorage 读取 ----------
+            const loadFromStorage = () => {
+                try {
+                    const savedEmps = localStorage.getItem('employees');
+                    if (savedEmps) employees.value = JSON.parse(savedEmps);
+                    
+                    const savedHistory = localStorage.getItem('history');
+                    if (savedHistory) history.value = JSON.parse(savedHistory);
+                } catch (e) {
+                    console.warn('读取存储失败', e);
+                }
+            };
+            loadFromStorage();
+
+            // 监听 employees 变化，更新 playData 结构（新增员工默认播放量为0）
+            watch(employees, (newEmps, oldEmps) => {
+                // 删除已经不存在的员工属性
+                Object.keys(playData).forEach(key => {
+                    if (!newEmps.includes(key)) {
+                        delete playData[key];
+                    }
+                });
+                // 为新员工设置默认值
+                newEmps.forEach(emp => {
+                    if (playData[emp] === undefined) {
+                        playData[emp] = 0;
+                    }
+                });
+                // 保存员工列表
+                localStorage.setItem('employees', JSON.stringify(newEmps));
+            }, { immediate: true, deep: true });
+
+            // 保存历史记录到 localStorage
+            watch(history, (newVal) => {
+                localStorage.setItem('history', JSON.stringify(newVal));
+            }, { deep: true });
+
+            // ---------- 计算属性 ----------
+            const totalPlay = computed(() => {
+                return Object.values(playData).reduce((acc, val) => acc + (Number(val) || 0), 0);
+            });
+
+            const canCalculate = computed(() => {
+                return employees.value.length > 0 && totalOrders.value > 0 && totalPlay.value > 0;
+            });
+
+            // ---------- 方法 ----------
+            function addEmployee() {
+                const name = newName.value.trim();
+                if (!name) return;
+                if (employees.value.includes(name)) {
+                    alert('员工已存在');
+                    return;
+                }
+                employees.value.push(name);
+                newName.value = '';
+            }
+
+            function removeEmployee(index) {
+                const name = employees.value[index];
+                employees.value.splice(index, 1);
+                // playData 中对应的属性会在 watch 中被删除
+            }
+
+            // 最大余额法分配整数单数
+            function allocate(total, items) {
+                // items: [{ name, play }] 播放量
+                const totalPlay = items.reduce((s, i) => s + i.play, 0);
+                if (totalPlay === 0) return items.map(i => ({ name: i.name, assigned: 0 }));
+
+                // 1. 计算理论值和小数部分
+                const theoretical = items.map(i => ({
+                    ...i,
+                    quota: (i.play / totalPlay) * total,
+                    intPart: Math.floor((i.play / totalPlay) * total),
+                    fracPart: ((i.play / totalPlay) * total) % 1
+                }));
+
+                // 2. 先分配整数部分
+                let sumInt = theoretical.reduce((s, i) => s + i.intPart, 0);
+                let remaining = total - sumInt;
+
+                // 3. 按小数部分从大到小排序
+                const sorted = [...theoretical].sort((a, b) => b.fracPart - a.fracPart);
+
+                // 4. 分配剩余单数（每人最多加1）
+                for (let i = 0; i < remaining; i++) {
+                    if (i < sorted.length) {
+                        sorted[i].intPart += 1;
+                    } else {
+                        // 极端情况：剩余单数超过人数？实际不会，因为 sumInt <= total，且剩余 < 人数
+                        break;
+                    }
+                }
+
+                // 5. 恢复原顺序并返回
+                const resultMap = Object.fromEntries(theoretical.map(t => [t.name, t.intPart]));
+                return items.map(i => ({ name: i.name, assigned: resultMap[i.name] }));
+            }
+
+            function calculate() {
+                if (!canCalculate.value) {
+                    alert('请确保有员工、总单数>0且总播放量>0');
+                    return;
+                }
+                // 校验：总单数和播放量不能为负数
+                if (totalOrders.value < 0) {
+                    alert('总单数不能为负数，请检查输入');
+                    return;
+                }
+                const negativeEmps = employees.value.filter(name => Number(playData[name]) < 0);
+                if (negativeEmps.length > 0) {
+                    alert(`以下员工的播放量为负数，请检查输入：${negativeEmps.join('、')}`);
+                    return;
+                }
+
+                // 但为了公平，即使播放量为0也应该参与（得0），所以用所有员工
+                const allItems = employees.value.map(name => ({
+                    name,
+                    play: Number(playData[name]) || 0
+                }));
+
+                const allocated = allocate(totalOrders.value, allItems);
+                result.value = allocated;
+            }
+
+            function resetToday() {
+                totalOrders.value = 0;
+                // 重置所有播放量为0
+                employees.value.forEach(emp => {
+                    playData[emp] = 0;
+                });
+                result.value = null;
+            }
+
+            function saveHistory() {
+                if (!result.value || result.value.length === 0) {
+                    alert('没有可保存的结果');
+                    return;
+                }
+                const date = new Date().toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'-');
+                // 生成摘要
+                const summary = result.value.map(r => `${r.name}:${r.assigned}`).join(' ');
+                const record = {
+                    date: date + ' ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }).slice(0,5),
+                    totalOrders: totalOrders.value,
+                    playSnapshot: { ...playData },   // 保存播放量快照
+                    resultSnapshot: [...result.value],
+                    summary
+                };
+                history.value.unshift(record);  // 最新的在前面
+                // 可选限制历史条数
+                if (history.value.length > 30) history.value = history.value.slice(0, 30);
+            }
+
+            function loadHistory(index) {
+                const rec = history.value[index];
+                if (!rec) return;
+                // 恢复数据到当前界面（不自动保存，方便查看/修改）
+                totalOrders.value = rec.totalOrders;
+                // 先清空当前所有播放量，避免残留不在快照中的员工旧数据
+                Object.keys(playData).forEach(name => {
+                    playData[name] = 0;
+                });
+                // 恢复播放量快照
+                Object.keys(rec.playSnapshot).forEach(name => {
+                    playData[name] = rec.playSnapshot[name];
+                });
+                // 也可以直接展示结果
+                result.value = rec.resultSnapshot;
+            }
+
+            function clearHistory() {
+                if (confirm('确定清空所有历史记录吗？')) {
+                    history.value = [];
+                    weeklyStatsCols.value = [];
+                    weeklyStatsRows.value = [];
+                }
+            }
+
+            function loadExample() {
+                // 预设一些员工和示例数据
+                const exampleEmps = ['张小明', '李芳', '王磊', '赵雅', '陈晨'];
+                employees.value = exampleEmps;
+                // 设置示例播放量
+                exampleEmps.forEach((name, idx) => {
+                    playData[name] = [1200, 3400, 2800, 900, 2100][idx] || 1000;
+                });
+                totalOrders.value = 50;
+                // 自动计算一下
+                calculate();
+            }
+
+            // ---------- 周统计计算 ----------
+            function getWeekNumber(d) {
+                // 复制日期以免修改原值
+                d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                // 设置为周四（ISO周算法）
+                d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+                return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2,'0')}`;
+            }
+
+            function computeWeeklyStats() {
+                if (history.value.length === 0) {
+                    alert('没有历史记录，无法生成统计');
+                    return;
+                }
+
+                // 数据结构：weekMap[weekKey][employee] = { play: 0, orders: 0 }
+                const weekMap = {};
+                const allEmployeesSet = new Set();
+
+                // 遍历历史记录
+                history.value.forEach(rec => {
+                    // 解析日期
+                    const dateStr = rec.date; // 格式 "YYYY-MM-DD HH:MM"
+                    const [datePart] = dateStr.split(' ');
+                    const [y, m, d] = datePart.split('-').map(Number);
+                    const dateObj = new Date(y, m-1, d);
+                    const weekKey = getWeekNumber(dateObj);
+
+                    if (!weekMap[weekKey]) {
+                        weekMap[weekKey] = {};
+                    }
+
+                    // 获取该记录的播放快照和结果快照
+                    const playSnap = rec.playSnapshot || {};
+                    const resultSnap = rec.resultSnapshot || [];
+
+                    // 将resultSnap转为映射
+                    const resultMap = {};
+                    resultSnap.forEach(r => { resultMap[r.name] = r.assigned; });
+
+                    // 遍历所有出现在playSnap中的员工（也包含了所有员工）
+                    Object.keys(playSnap).forEach(emp => {
+                        allEmployeesSet.add(emp);
+                        if (!weekMap[weekKey][emp]) {
+                            weekMap[weekKey][emp] = { play: 0, orders: 0 };
+                        }
+                        weekMap[weekKey][emp].play += Number(playSnap[emp]) || 0;
+                        weekMap[weekKey][emp].orders += Number(resultMap[emp]) || 0;
+                    });
+                });
+
+                // 获取所有员工列表并排序
+                const allEmployees = Array.from(allEmployeesSet).sort();
+
+                // 获取所有周并排序（按年份周数排序）
+                const weeks = Object.keys(weekMap).sort((a,b) => {
+                    const [ya, wa] = a.split('-W').map(Number);
+                    const [yb, wb] = b.split('-W').map(Number);
+                    if (ya !== yb) return ya - yb;
+                    return wa - wb;
+                });
+
+                // 构建行数据
+                const rows = [];
+                const weeklyTotalsTemp = {};
+                weeks.forEach(w => { weeklyTotalsTemp[w] = { play:0, orders:0 }; });
+
+                allEmployees.forEach(emp => {
+                    const row = {
+                        name: emp,
+                        weeks: {},
+                        totalPlay: 0,
+                        totalOrders: 0
+                    };
+                    weeks.forEach(week => {
+                        const data = weekMap[week]?.[emp] || { play:0, orders:0 };
+                        row.weeks[week] = data;
+                        row.totalPlay += data.play;
+                        row.totalOrders += data.orders;
+
+                        // 累加每周总计
+                        if (data.play > 0 || data.orders > 0) {
+                            weeklyTotalsTemp[week].play += data.play;
+                            weeklyTotalsTemp[week].orders += data.orders;
+                        }
+                    });
+                    rows.push(row);
+                });
+
+                // 计算全局总计
+                let grandPlay = 0, grandOrders = 0;
+                rows.forEach(row => {
+                    grandPlay += row.totalPlay;
+                    grandOrders += row.totalOrders;
+                });
+
+                // 更新响应式数据
+                weeklyStatsCols.value = weeks;
+                weeklyStatsRows.value = rows;
+                weeklyTotals.value = weeklyTotalsTemp;
+                grandTotalPlay.value = grandPlay;
+                grandTotalOrders.value = grandOrders;
+            }
+
+            // ---------- 导出功能 ----------
+            function exportDailyToCSV() {
+                if (!result.value || result.value.length === 0) return;
+
+                // 准备数据
+                const rows = [
+                    ['员工', '播放量', '占比 (%)', '分配单数']
+                ];
+                result.value.forEach(item => {
+                    const play = playData[item.name] || 0;
+                    const percent = totalPlay.value > 0 ? ((play / totalPlay.value) * 100).toFixed(2) : '0.00';
+                    rows.push([item.name, play, percent, item.assigned]);
+                });
+                // 添加总计行
+                rows.push(['总计', totalPlay.value, '100.00', totalOrders.value]);
+
+                // 生成CSV内容
+                let csvContent = rows.map(row => row.join(',')).join('\n');
+                // 添加BOM处理中文
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.setAttribute('download', `今日分配_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            function exportWeeklyToCSV() {
+                if (weeklyStatsCols.value.length === 0 || weeklyStatsRows.value.length === 0) return;
+
+                // 构建表头：第一列"员工" + 每周列 + "总计"
+                const header = ['员工', ...weeklyStatsCols.value, '总计'];
+
+                // 构建数据行
+                const dataRows = [];
+                weeklyStatsRows.value.forEach(row => {
+                    const rowData = [row.name];
+                    weeklyStatsCols.value.forEach(week => {
+                        const weekData = row.weeks[week];
+                        if (weekData) {
+                            rowData.push(`播放:${weekData.play} 单:${weekData.orders}`);
+                        } else {
+                            rowData.push('—');
+                        }
+                    });
+                    rowData.push(`播放:${row.totalPlay} 单:${row.totalOrders}`);
+                    dataRows.push(rowData);
+                });
+
+                // 添加每周合计行
+                const totalRow = ['📌 每周合计'];
+                weeklyStatsCols.value.forEach(week => {
+                    const wt = weeklyTotals.value[week];
+                    if (wt) {
+                        totalRow.push(`播放:${wt.play} 单:${wt.orders}`);
+                    } else {
+                        totalRow.push('—');
+                    }
+                });
+                totalRow.push(`播放:${grandTotalPlay.value} 单:${grandTotalOrders.value}`);
+                dataRows.push(totalRow);
+
+                // 组合所有行
+                const allRows = [header, ...dataRows];
+
+                // 生成CSV
+                let csvContent = allRows.map(row => row.join(',')).join('\n');
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.setAttribute('download', `周统计_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            return {
+                employees,
+                newName,
+                totalOrders,
+                playData,
+                result,
+                history,
+                totalPlay,
+                canCalculate,
+                addEmployee,
+                removeEmployee,
+                calculate,
+                resetToday,
+                saveHistory,
+                loadHistory,
+                clearHistory,
+                loadExample,
+                // 周统计
+                weeklyStatsCols,
+                weeklyStatsRows,
+                weeklyTotals,
+                grandTotalPlay,
+                grandTotalOrders,
+                computeWeeklyStats,
+                // 导出
+                exportDailyToCSV,
+                exportWeeklyToCSV
+            };
+        }
+    });
+
+    app.mount('#app');
+</script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

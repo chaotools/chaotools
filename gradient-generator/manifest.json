@@ -1,0 +1,11 @@
+{
+  "id": "gradient-generator",
+  "name": "CSS 渐变生成器",
+  "description": "可视化调色，选择方向，一键复制 CSS 渐变代码",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["CSS", "渐变", "生成器", "颜色"],
+  "features": ["可视化调色", "方向选择", "一键复制CSS"]
+}

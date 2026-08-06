@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS 渐变生成器 - Chaotools</title>
+  <style>
+    :root { --bg: #0a0e17; --surface: #111a2e; --border: rgba(56,189,248,.08); --border-hover: rgba(56,189,248,.2); --cyan: #38bdf8; --cyan-dim: rgba(56,189,248,.08); --text: #e2e8f0; --text-dim: #7f8ea3; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 640px; margin: 0 auto; padding: 60px 20px 40px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim); text-decoration: none; font-size: 14px; margin-bottom: 20px; transition: color .2s; }
+    .back:hover { color: var(--brand, var(--cyan)); }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; background: linear-gradient(135deg,#38bdf8,#818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+
+    .preview-box { width: 100%; height: 200px; border-radius: var(--radius); margin-bottom: 20px; transition: background .2s; border: 1px solid var(--border); }
+
+    .row { display: flex; gap: 12px; margin-bottom: 16px; }
+    .row .field { flex: 1; }
+    label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+    input[type="color"] { width: 100%; height: 48px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); cursor: pointer; outline: none; }
+    input[type="range"] { width: 100%; -webkit-appearance: none; height: 6px; border-radius: 3px; background: var(--border); outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--brand, var(--cyan)); cursor: pointer; }
+    input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--brand, var(--cyan)); cursor: pointer; border: none; }
+    select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; padding: 10px 14px; outline: none; cursor: pointer; }
+
+    .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .preset { width: 44px; height: 44px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; transition: border-color .2s; }
+    .preset:hover, .preset.active { border-color: var(--brand, var(--cyan)); }
+
+    .code-block { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; line-height: 1.6; word-break: break-all; color: var(--brand, var(--cyan)); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .copy-btn { background: var(--cyan-dim); border: none; color: var(--brand, var(--cyan)); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: opacity .2s; }
+    .copy-btn:hover { opacity: .8; }
+
+    .angle-display { text-align: center; color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border-hover); padding: 10px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: all .3s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) { .container { padding: 40px 16px 30px; } .row { flex-direction: column; } }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container"><h1>📊 CSS 渐变生成器</h1>
+    <p class="subtitle">可视化调色，一键复制 CSS 代码</p>
+
+    <div class="card">
+      <div class="preview-box" id="previewBox"></div>
+
+      <div class="presets" id="presets"></div>
+
+      <div class="row">
+        <div class="field">
+          <label for="color1">起始颜色</label>
+          <input type="color" id="color1" value="#38bdf8">
+        </div>
+        <div class="field">
+          <label for="color2">结束颜色</label>
+          <input type="color" id="color2" value="#818cf8">
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom: 16px;">
+        <label for="direction">方向</label>
+        <select id="direction">
+          <option value="to bottom">从上到下 (to bottom)</option>
+          <option value="to top">从下到上 (to top)</option>
+          <option value="to right">从左到右 (to right)</option>
+          <option value="to left">从右到左 (to left)</option>
+          <option value="to bottom right">左上到右下</option>
+          <option value="to bottom left">右上到左下</option>
+          <option value="to top right">左下到右上</option>
+          <option value="to top left">右下到左上</option>
+          <option value="custom">自定义角度</option>
+        </select>
+      </div>
+
+      <div class="field" style="margin-bottom: 16px; display:none" id="angleField">
+        <label>角度: <span id="angleValue">45</span>°</label>
+        <input type="range" id="angleSlider" min="0" max="360" value="45">
+      </div>
+
+      <div class="code-block">
+        <span id="cssCode">background: linear-gradient(to bottom, #38bdf8, #818cf8);</span>
+        <button class="copy-btn" id="copyCssBtn">复制 CSS</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const preview = document.getElementById('previewBox');
+    const color1 = document.getElementById('color1');
+    const color2 = document.getElementById('color2');
+    const direction = document.getElementById('direction');
+    const angleSlider = document.getElementById('angleSlider');
+    const angleField = document.getElementById('angleField');
+    const angleValue = document.getElementById('angleValue');
+    const cssCode = document.getElementById('cssCode');
+    const copyBtn = document.getElementById('copyCssBtn');
+    const presetsEl = document.getElementById('presets');
+    const toast = document.getElementById('toast');
+
+    const presets = [
+      { colors: ['#38bdf8','#818cf8'], name: '极光' },
+      { colors: ['#f97316','#ef4444'], name: '日落' },
+      { colors: ['#34d399','#06b6d4'], name: '海洋' },
+      { colors: ['#a78bfa','#ec4899'], name: '极光紫' },
+      { colors: ['#fbbf24','#f97316'], name: '火焰' },
+      { colors: ['#1e293b','#0f172a'], name: '暗夜' },
+      { colors: ['#64748b','#06b6d4'], name: '冰川' },
+      { colors: ['#84cc16','#059669'], name: '森林' },
+    ];
+
+    let toastTimer;
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    function getDirectionCode() {
+      if (direction.value === 'custom') return `${angleSlider.value}deg`;
+      return direction.value;
+    }
+
+    function getDirectionLabel() {
+      if (direction.value === 'custom') return `${angleSlider.value}deg`;
+      return direction.value;
+    }
+
+    function updatePreview() {
+      const c1 = color1.value;
+      const c2 = color2.value;
+      const dir = getDirectionCode();
+      const css = `background: linear-gradient(${dir}, ${c1}, ${c2});`;
+      preview.style.background = `linear-gradient(${dir}, ${c1}, ${c2})`;
+      cssCode.textContent = css;
+
+      // Update active preset
+      document.querySelectorAll('.preset').forEach(el => {
+        const p = presets[parseInt(el.dataset.idx)];
+        if (p && p.colors[0] === c1 && p.colors[1] === c2) el.classList.add('active');
+        else el.classList.remove('active');
+      });
+    }
+
+    direction.addEventListener('change', () => {
+      angleField.style.display = direction.value === 'custom' ? 'block' : 'none';
+      updatePreview();
+    });
+
+    angleSlider.addEventListener('input', () => {
+      angleValue.textContent = angleSlider.value;
+      updatePreview();
+    });
+
+    color1.addEventListener('input', updatePreview);
+    color2.addEventListener('input', updatePreview);
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(cssCode.textContent).then(() => showToast('CSS 已复制')).catch(() => showToast('复制失败'));
+    });
+
+    // Render presets
+    presets.forEach((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'preset';
+      el.dataset.idx = i;
+      el.style.background = `linear-gradient(135deg, ${p.colors[0]}, ${p.colors[1]})`;
+      el.title = p.name;
+      el.addEventListener('click', () => {
+        color1.value = p.colors[0];
+        color2.value = p.colors[1];
+        updatePreview();
+      });
+      presetsEl.appendChild(el);
+    });
+
+    // Set first preset active
+    presetsEl.querySelector('.preset').classList.add('active');
+    updatePreview();
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

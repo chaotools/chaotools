@@ -1,0 +1,16 @@
+# Cloudflare Pages Redirects
+
+# Tool routes (each tool is a separate directory)
+/tool/json-formatter/* /json-formatter/:splat 200
+/tool/color-converter/* /color-converter/:splat 200
+/tool/regex-tester/* /regex-tester/:splat 200
+/tool/base64-codec/* /base64-codec/:splat 200
+/tool/uuid-generator/* /uuid-generator/:splat 200
+/tool/rainbow-fart/* /rainbow-fart/:splat 200
+/tool/emoji-search/* /emoji-search/:splat 200
+/tool/random-avatar/* /random-avatar/:splat 200
+/tool/poison-soup/* /poison-soup/:splat 200
+/tool/hitokoto/* /hitokoto/:splat 200
+
+# Fallback to index for SPA-like behavior
+/* /index.html 200

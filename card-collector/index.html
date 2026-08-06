@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>阿萨拉扑克牌收集</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;background:#1a1c14;color:#c4b998;min-height:100dvh;background-image:radial-gradient(ellipse at 50% 0%,#2a2d1f 0%,#1a1c14 60%)}
+.header{background:linear-gradient(180deg,#2d301a 0%,#1f2114 100%);border-bottom:2px solid #4a3c28;padding:12px 24px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#8b7355,transparent)}
+.header a{color:#8b7355;text-decoration:none;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.header h1{font-size:18px;color:#e8d5a3;flex:1;letter-spacing:2px;text-shadow:0 1px 3px rgba(0,0,0,0.5)}
+.badge{font-size:14px;color:#c9a84c;font-weight:900;letter-spacing:1px;background:rgba(0,0,0,0.3);padding:4px 12px;border-radius:3px;border:1px solid #4a3c28}
+.main{max-width:700px;margin:0 auto;padding:20px}
+
+/* 进度条 */
+.progress{margin-bottom:16px}
+.progress-bar{height:8px;background:#151710;border-radius:0;overflow:hidden;border:1px solid #2d301a}
+.progress-fill{height:100%;background:linear-gradient(90deg,#6b4c1e,#c9a84c,#e8d5a3);transition:width 0.4s}
+.progress-text{font-size:11px;color:#8b7355;margin-top:4px;text-align:right;letter-spacing:1px}
+
+/* 筛选 */
+.filters{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.filt{padding:5px 14px;border-radius:2px;font-size:12px;border:1px solid #3a3520;background:rgba(0,0,0,0.3);color:#8b8070;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:1px}
+.filt:hover{background:rgba(0,0,0,0.5);color:#c4b998}
+.filt.active{color:#e8d5a3;border-color:#6b4c1e;box-shadow:inset 0 0 0 1px #6b4c1e}
+.filt.heart.active{color:#c0392b;border-color:#c0392b;box-shadow:inset 0 0 0 1px #c0392b}
+.filt.spade.active{color:#5dade2;border-color:#5dade2;box-shadow:inset 0 0 0 1px #5dade2}
+.filt.diamond.active{color:#e67e22;border-color:#e67e22;box-shadow:inset 0 0 0 1px #e67e22}
+.filt.club.active{color:#27ae60;border-color:#27ae60;box-shadow:inset 0 0 0 1px #27ae60}
+.filt.joker.active{color:#8e44ad;border-color:#8e44ad;box-shadow:inset 0 0 0 1px #8e44ad}
+
+/* 卡片网格 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;margin-bottom:20px}
+.card{aspect-ratio:0.7;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;border:2px solid #2d301a;background:linear-gradient(180deg,#1a1c14 0%,#151710 100%)}
+.card:active{transform:scale(0.95)}
+.card .rank{font-size:20px;font-weight:900;line-height:1}
+.card .suit{font-size:10px;font-weight:600;margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+.card .time{font-size:9px;color:rgba(200,180,150,0.35);margin-top:4px}
+.card .check{position:absolute;top:3px;right:5px;font-size:11px;display:none;color:#c9a84c}
+.card.collected .check{display:block}
+
+.card:not(.collected){opacity:0.45}
+.card.collected{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.5)}
+
+/* 花色颜色 - Delta 风格 */
+.card.heart{color:#c0392b}.card.heart.collected{background:linear-gradient(180deg,#2a1012 0%,#1a0c0e 100%);border-color:#c0392b}.card.heart:not(.collected){background:#1a1012}
+.card.spade{color:#5dade2}.card.spade.collected{background:linear-gradient(180deg,#101a2a 0%,#0c131e 100%);border-color:#5dade2}.card.spade:not(.collected){background:#10131a}
+.card.diamond{color:#e67e22}.card.diamond.collected{background:linear-gradient(180deg,#2a1a10 0%,#1a1008 100%);border-color:#e67e22}.card.diamond:not(.collected){background:#1a1510}
+.card.club{color:#27ae60}.card.club.collected{background:linear-gradient(180deg,#102a18 0%,#0a1a10 100%);border-color:#27ae60}.card.club:not(.collected){background:#101a14}
+.card.joker{color:#8e44ad}.card.joker.collected{background:linear-gradient(180deg,#1a102a 0%,#120a1e 100%);border-color:#8e44ad}.card.joker:not(.collected){background:#15101a}
+
+/* 统计 */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;margin-bottom:20px}
+.stat{background:linear-gradient(180deg,#1f2114 0%,#171910 100%);border:1px solid #2d301a;border-radius:4px;padding:12px;text-align:center}
+.stat .label{font-size:10px;color:#6b6550;text-transform:uppercase;letter-spacing:1px}
+.stat .val{font-size:22px;font-weight:900;margin-top:2px;color:#e8d5a3;letter-spacing:1px}
+
+/* 最近收集 */
+.recent{margin-bottom:20px;font-size:13px;color:#8b8070;background:linear-gradient(180deg,#1f2114 0%,#171910 100%);border:1px solid #2d301a;border-radius:4px;padding:12px}
+.recent b{color:#e8d5a3}
+
+/* 按钮 */
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.btn{padding:8px 20px;border:1px solid #3a3520;border-radius:2px;background:rgba(0,0,0,0.3);color:#8b8070;font-size:11px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:2px}
+.btn:hover{background:rgba(0,0,0,0.5);color:#c4b998;border-color:#4a3c28}
+.btn.danger{color:#c0392b;border-color:#3a1a1a}
+.btn.danger:hover{background:#2a1015;border-color:#c0392b}
+
+@media(max-width:400px){.grid{grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:5px}.card .rank{font-size:15px}.card .suit{font-size:9px}.header h1{font-size:15px}}
+</style>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+
+<div class="header">
+  <a href="/">← 工具箱</a>
+  <h1>⚔ 阿萨拉扑克牌</h1>
+  <span class="badge" id="pct">0/54</span>
+</div>
+
+<div class="main">
+  <div class="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-text" id="progressPct">0%</div>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="btns">
+    <button class="btn danger" onclick="resetAll()">🔄 全部重置</button>
+  </div>
+</div>
+
+<script>
+// ===== 54张牌定义 =====
+const SUITS = [
+  {id:'spade', name:'黑桃', color:'#3498db', emoji:'♠'},
+  {id:'heart', name:'红桃', color:'#e74c3c', emoji:'♥'},
+  {id:'diamond', name:'方块', color:'#e67e22', emoji:'♦'},
+  {id:'club', name:'梅花', color:'#27ae60', emoji:'♣'},
+];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const JOKERS = ['小王','大王'];
+
+let cards = [];
+let collected = {}; // cardId -> timestamp
+let filter = 'all';
+let statusFilter = 'all'; // 'all' | 'got' | 'need'
+
+function buildCards(){
+  cards = [];
+  let id = 0;
+  for(const suit of SUITS){
+    for(const rank of RANKS){
+      cards.push({id: id++, suit:suit.id, suitName:suit.name, suitColor:suit.color, suitEmoji:suit.emoji, rank, isJoker:false, display:`${suit.name}${rank}`});
+    }
+  }
+  for(const j of JOKERS){
+    cards.push({id: id++, suit:'joker', suitName:j.includes('王')?'大王':'小王', suitColor:'#8e44ad', suitEmoji:'🃏', rank:j, isJoker:true, display:j});
+  }
+}
+
+function loadState(){
+  const saved = JSON.parse(localStorage.getItem('card_collector') || '{}');
+  collected = saved.collected || {};
+}
+
+function saveState(){
+  localStorage.setItem('card_collector', JSON.stringify({collected}));
+}
+
+function getSuitClass(suit){
+  return {spade:'spade',heart:'heart',diamond:'diamond',club:'club',joker:'joker'}[suit]||'';
+}
+
+function collect(card){
+  if(collected[card.id]){
+    delete collected[card.id];
+  } else {
+    collected[card.id] = Date.now();
+  }
+  saveState();
+  render();
+}
+
+function isCollected(card){ return !!collected[card.id]; }
+
+function render(){
+  const filtered = cards.filter(c => {
+    if(filter !== 'all' && c.suit !== filter) return false;
+    if(statusFilter === 'got' && !isCollected(c)) return false;
+    if(statusFilter === 'need' && isCollected(c)) return false;
+    return true;
+  });
+  const total = cards.length;
+  const got = Object.keys(collected).length;
+
+  document.getElementById('pct').textContent = `${got}/${total}`;
+  document.getElementById('progressFill').style.width = (got/total*100)+'%';
+  document.getElementById('progressPct').textContent = `${(got/total*100).toFixed(0)}%`;
+
+  // 筛选按钮
+  document.getElementById('filters').innerHTML = `
+    <span class="filt ${filter==='all'?'active':''}" onclick="filterBy('all')">全部</span>
+    ${SUITS.map(s => `<span class="filt ${s.id} ${filter===s.id?'active':''}" onclick="filterBy('${s.id}')">${s.emoji} ${s.name}</span>`).join('')}
+    <span class="filt joker ${filter==='joker'?'active':''}" onclick="filterBy('joker')">🃏 小丑</span>
+    <span style="color:#444;margin:0 2px">|</span>
+    <span class="filt" style="color:#27ae60;${statusFilter==='got'?'background:#27ae60;color:#fff;border-color:#27ae60':''}" onclick="statusFilter='${statusFilter==='got'?'all':'got'}';render()">✅ 已收集</span>
+    <span class="filt" style="color:#e67e22;${statusFilter==='need'?'background:#e67e22;color:#fff;border-color:#e67e22':''}" onclick="statusFilter='${statusFilter==='need'?'all':'need'}';render()">🔍 未收集</span>
+  `;
+
+  // 卡片
+  document.getElementById('grid').innerHTML = filtered.map(c => {
+    const cls = [getSuitClass(c.suit), isCollected(c) ? 'collected' : ''].join(' ');
+    const time = collected[c.id] ? new Date(collected[c.id]).toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'}) : '';
+    return `<div class="card ${cls}" onclick="collect(cards[${c.id}])" title="${c.display}">
+      <span class="check">✅</span>
+      <span class="rank">${c.rank}</span>
+      <span class="suit">${c.isJoker ? '' : c.suitName}</span>
+      ${time ? `<span class="time">${time}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  // 按花色统计
+  document.getElementById('stats').innerHTML = [
+    ...SUITS.map(s => {
+      const suitCards = cards.filter(c => c.suit===s.id);
+      const suitGot = suitCards.filter(c => isCollected(c)).length;
+      return `<div class="stat"><div class="label">${s.emoji} ${s.name}</div><div class="val" style="color:${s.color}">${suitGot}/${suitCards.length}</div></div>`;
+    }),
+    (()=>{
+      const jCards = cards.filter(c=>c.suit==='joker');
+      const jGot = jCards.filter(c=>isCollected(c)).length;
+      return `<div class="stat"><div class="label">🃏 小丑</div><div class="val" style="color:#8e44ad">${jGot}/${jCards.length}</div></div>`;
+    })()
+  ].join('');
+
+}
+
+function filterBy(suit){ filter = suit; render(); }
+
+function resetAll(){
+  if(confirm('确定要清除所有收集记录吗？此操作不可恢复。')){
+    collected = {};
+    saveState();
+    render();
+  }
+}
+
+
+buildCards();
+loadState();
+render();
+</script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>颜色转换器 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .color-preview {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .input-group {
+      flex: 1;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .color-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-picker {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .color-picker::-webkit-color-swatch-wrapper {
+      padding: 2px;
+    }
+
+    .color-picker::-webkit-color-swatch {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: var(--brand, var(--cyan));
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .result {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .result:hover {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .result-label {
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+
+    .result-value {
+      color: var(--text);
+    }
+
+    .swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>🎨 颜色转换器</h1>
+    <p class="desc">HEX、RGB、HSL 颜色互转，实时预览</p>
+
+    <div class="card">
+      <div id="colorPreview" class="color-preview">#00FF9D</div>
+
+      <div class="input-row">
+        <div class="input-group">
+          <label>拾取颜色</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="colorPicker" class="color-picker" value="#38bdf8">
+            <input type="text" id="hexInput" value="#00FF9D" placeholder="#00FF9D">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="convertFromHex()">转换</button>
+    </div>
+
+    <div class="card">
+      <div class="result" onclick="copyValue(this)">
+        <span class="result-label">HEX</span>
+        <span class="result-value" id="resultHex">#00FF9D</span>
+      </div>
+      <div style="height: 8px"></div>
+      <div class="result" onclick="copyValue(this)">
+        <span class="result-label">RGB</span>
+        <span class="result-value" id="resultRgb">rgb(0, 255, 157)</span>
+      </div>
+      <div style="height: 8px"></div>
+      <div class="result" onclick="copyValue(this)">
+        <span class="result-label">HSL</span>
+        <span class="result-value" id="resultHsl">hsl(150, 100%, 50%)</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const colorPicker = document.getElementById('colorPicker');
+    const hexInput = document.getElementById('hexInput');
+    const colorPreview = document.getElementById('colorPreview');
+
+    // 颜色选择器变化
+    colorPicker.addEventListener('input', (e) => {
+      hexInput.value = e.target.value.toUpperCase();
+      updateFromHex();
+    });
+
+    // HEX 输入框变化
+    hexInput.addEventListener('input', () => {
+      let val = hexInput.value.trim();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        colorPicker.value = val;
+        updateFromHex();
+      }
+    });
+
+    function updateFromHex() {
+      const hex = hexInput.value;
+      const rgb = hexToRgb(hex);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+      document.getElementById('resultHex').textContent = hex.toUpperCase();
+      document.getElementById('resultRgb').textContent = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+      document.getElementById('resultHsl').textContent = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+
+      colorPreview.style.backgroundColor = hex;
+      colorPreview.textContent = hex.toUpperCase();
+
+      // 根据亮度调整文字颜色
+      const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+      colorPreview.style.color = brightness > 128 ? '#070b12' : '#ffffff';
+    }
+
+    function convertFromHex() {
+      let hex = hexInput.value.trim();
+      if (!hex.startsWith('#')) hex = '#' + hex;
+
+      if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        alert('请输入有效的 HEX 颜色值 (如: #00FF9D)');
+        return;
+      }
+
+      hexInput.value = hex.toUpperCase();
+      colorPicker.value = hex;
+      updateFromHex();
+    }
+
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 0, b: 0 };
+    }
+
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+
+      if (max === min) {
+        h = s = 0;
+      } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+          case g: h = ((b - r) / d + 2) / 6; break;
+          case b: h = ((r - g) / d + 4) / 6; break;
+        }
+      }
+
+      return {
+        h: Math.round(h * 360),
+        s: Math.round(s * 100),
+        l: Math.round(l * 100)
+      };
+    }
+
+    function copyValue(el) {
+      const value = el.querySelector('.result-value').textContent;
+      navigator.clipboard.writeText(value);
+      const original = el.querySelector('.result-label').textContent;
+      el.querySelector('.result-label').textContent = '已复制!';
+      setTimeout(() => {
+        el.querySelector('.result-label').textContent = original;
+      }, 1000);
+    }
+
+    // 初始化
+    updateFromHex();
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

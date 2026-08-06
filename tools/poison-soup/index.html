@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>毒鸡汤 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --red: #ff4757;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 16px;
+    }
+
+    .quote-box {
+      background: linear-gradient(135deg, rgba(255, 71, 87, 0.08), rgba(255, 71, 87, 0.02));
+      border: 1px solid rgba(255, 71, 87, 0.2);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .quote-text {
+      font-size: 18px;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #ff4757, #ff6b7a);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    .copy-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .stats {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>🧪 毒鸡汤</h1>
+    <p class="desc">振奋人心的毒鸡汤，治愈精神内耗</p>
+
+    <div class="card">
+      <div class="quote-box">
+        <p id="quoteText" class="quote-text">点击下方按钮生成毒鸡汤</p>
+      </div>
+
+      <button onclick="generate()">🧪 来一碗毒鸡汤</button>
+      <button class="copy-btn" onclick="copyQuote()">📋 复制到剪贴板</button>
+    </div>
+
+    <p id="stats" class="stats"></p>
+  </div>
+
+  <script>
+    const quotes = [
+      "你以为拼的是努力，其实拼的是投胎。",
+      "别人比你优秀，是因为别人比你更努力？不一定，是因为别人有个好爹。",
+      "只要我吃得够快，脂肪就追不上我。",
+      "你所有的焦虑，都是因为懒。",
+      "生活不止眼前的苟且，还有读不懂的诗和去不了的远方。",
+      "努力不一定会成功，但不努力一定很舒服。",
+      "咸鱼翻身还是咸鱼。",
+      "何以解忧，唯有暴富。",
+      "比你优秀的人还在努力，那你努力还有什么用？",
+      "虽然我长得丑，但是我想得美啊。",
+      "有些事情不是努力就能成功的，比如找对象。",
+      "我太难了，上辈子一定是道数学题。",
+      "人生就像一场戏，因为有缘才相聚。相聚到老不容易，是否更该去珍惜？",
+      "别人都是海王备胎，而我是ocean，因为他根本记不住我名字。",
+      "你的美让人窒息，但你的穷让人清醒。",
+      "我本想减肥，但美食太好吃了。",
+      "每天早上起床对着镜子说：今天又是元气满满的一天。然后出门被现实打脸。",
+      "我追星：偶像 poverty 了，我本人也 poverty 了。",
+      "工资到手，还完花呗，剩下个位数。",
+      "你努力的天花板，不过是别人的起点。",
+      "失败是成功之母，但成功他爸是谁我都不知道。",
+      "我太喜欢熬夜了，因为我白天赚的钱不够花。",
+      "每天默念三遍：不要生气不要生气不要生气，然后生一整天的气。",
+      "别灰心，人生就是这样起起落落落落落落的。",
+      "我也想努力，但我真的很难坚持，比如坚持熬夜到凌晨三点。",
+      "有些事情不需要坚持，顺其自然就好。比如我的发际线。",
+      "我最近的状态：想死但还没死，想活但不知道怎么活。",
+      "每当我准备学习的时候，这个世界就变得格外有趣。",
+      "都说钱不是万能的，钱都买不到快乐，可我明明很不快乐啊。",
+      "人生没有白走的路，每一步都算数。但有些路，是弯路。",
+      "我也想embergass，但我的 embarrass 只会出现在英语成绩上。",
+      "别人25岁就有所成就，你25岁还在工位上偷偷看手机。",
+      "努力不一定有结果，但不努力一定很舒服，比如躺着的时候。",
+      "我每次发誓要减肥，运动五分钟，休息两小时。",
+      "有人说不要放弃，但我的体重从来没放弃过我。",
+      "明明知道刷手机不好，但还是忍不住刷到半夜。",
+      "你的同龄人正在抛弃你，不是因为你不够努力，是因为你还在看手机。",
+      "人生三大幻觉：手机震动、有人敲门、他还爱我。其实都没有。",
+      "都说知识改变命运，可我学了这么多年，还是这么穷。",
+      "我：想减肥。美食：来呀。",
+      "我本来可以成为一个优秀的人，都是因为手机太好玩了。",
+      "每当我快睡着的时候，脑子里就开始自动播放我的一天。",
+      "我最大的本领就是把一切简单的事情变得复杂，然后做不完。",
+      "有人说我土，我只想说，我只对在乎的人土。",
+      "我每天的三大难题：早上吃什么，中午吃什么，晚上吃什么。",
+      "别跟我谈感情，伤钱。",
+      "我的钱包就像个笑话，里面永远都是空的。",
+      "我太喜欢这个世界了，尤其是那些好吃的。",
+      "如果你也每天加班到深夜，说明你的公司很需要你，也说明你的生活很需要改变。",
+      "每次看到银行卡余额，我就想：钱不是万能的，钱是万达的。",
+      "我最大的问题就是想太多，做太少，睡太晚。",
+      "别总说国产不行，你用的华为、比亚迪、开的车、住的房子，改变了国产的偏见吗？",
+      "我也想早睡早起，但深夜的手机太好玩了。",
+      "减肥这件事减的不是肥，是我的意志力。",
+      "我的人生规划：脱贫、脱单、不脱发。目前完成了：脱发。",
+      "有人说我长得丑，我笑了，因为我笑着笑着就哭了。",
+      "为什么我总觉得自己不幸福，因为我的欲望比钱包大。",
+      "每天起床第一句：再睡五分钟。然后迟到了。",
+      "我每天都在和内心的懒惰做斗争，结果每次都是我输。",
+      "有些事情不是来不及，是你想得太多做得太少。",
+      "别人：工作生活两不误。我：工作和生活都抓不住。",
+      "都说时间会治愈一切，但我的伤口怎么还在流血？",
+      "你可以不世故，但不能太天真。",
+      "我每天都在想：明天一定要改变。但明天来了，我还是我。",
+      "人生就像打电话，不是你先挂就是他先挂。所以别太认真。",
+      "有人问我为什么这么努力工作，因为我穷。",
+      "我讨厌有钱人，因为他们可以买我买不起的东西。",
+      "如果有钱是种错误，我愿意一错再错。",
+      "都说好看的皮囊三千一晚，有趣的灵魂要车要房。怎么，我就是那个皮囊？",
+      "我试过很多次按时睡觉，但手机它不允许啊。",
+      "有些人是来报恩的，有些人是来报仇的，我可能是来凑数的。",
+      "你越催我，我越慢。所以别催。",
+      "我不是胖，我只是骨架大。不，我只是吃的多。",
+      "所有的为时已晚，其实是恰到好处的开始。前提是你得有钱。",
+      "为什么我的人生总是这么难，因为简单的人生都在电视剧里。",
+      "每天都告诉自己一遍：明天会更好。然后第二天继续丧。",
+      "有人说要活在当下，但我的当下只有加班。",
+      "我不怕死亡，我怕的是我还没实现财富自由就要去领盒饭了。",
+      "我最大的遗憾，是没有早点认识到自己是个普通人。",
+      "所有的一夜成名，都是在积累了无数个失眠夜晚之后。",
+      "有时候你已经很努力了，但结果还是不如意。所以别太努力，会累。",
+      "人生就像心电图，一波三折才说明你还有的活。",
+      "我曾经也是学霸，直到我接触了手机。",
+      "有些事情不是努力就有用的，比如让渣男变专一。",
+      "我讨厌励志，因为每次看完励志视频，我就更焦虑了。",
+      "如果我能让所有人都满意，那我早就不用上班了。",
+      "为什么有些人运气好，因为有些人把运气当实力。",
+      "我知道生活很难，但easy模式的人生不是我的。",
+      "我也想酷酷的，但我的钱包不允许。",
+      "有人说要活成自己想要的样子，请问谁知道自己想要什么样子？"
+    ];
+
+    let usedIndices = [];
+    let lastIndex = -1;
+
+    function generate() {
+      if (usedIndices.length >= quotes.length) {
+        usedIndices = [];
+      }
+
+      let index;
+      do {
+        index = Math.floor(Math.random() * quotes.length);
+      } while (usedIndices.includes(index) && usedIndices.length < quotes.length);
+
+      usedIndices.push(index);
+      lastIndex = index;
+
+      document.getElementById('quoteText').textContent = quotes[index];
+      document.getElementById('stats').textContent = `已阅读 ${usedIndices.length} / ${quotes.length} 条`;
+    }
+
+    function copyQuote() {
+      const quote = document.getElementById('quoteText').textContent;
+      if (quote && !quote.includes('点击')) {
+        navigator.clipboard.writeText(quote);
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✅ 已复制!';
+        setTimeout(() => btn.textContent = '📋 复制到剪贴板', 1500);
+      }
+    }
+
+    // Init
+    generate();
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

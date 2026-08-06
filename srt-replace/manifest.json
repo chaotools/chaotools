@@ -1,0 +1,11 @@
+{
+  "id": "srt-replace",
+  "name": "SRT 批量替换",
+  "description": "SRT 字幕文件批量替换敏感词，支持词表管理、导入导出",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["media"],
+  "tags": ["srt", "字幕", "替换", "剪映"],
+  "features": ["批量替换", "词表管理", "文件上传", "下载结果"]
+}

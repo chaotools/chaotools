@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>提词器 — Teleprompter</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#000;color:#fff;overflow:hidden;height:100dvh;touch-action:manipulation}
+
+/* ========== 标准模式 ========== */
+.standard-mode .prompt-stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+.standard-mode .prompt-text{position:absolute;left:5vw;right:5vw;text-align:center;font-weight:700;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+
+/* ========== 悬浮模式 ========== */
+.float-mode{background:transparent!important}
+.float-mode .prompt-stage{position:fixed;top:0;left:0;right:0;height:80px;display:flex;align-items:center;overflow:hidden;
+  background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  border-bottom:1px solid rgba(255,255,255,0.1);z-index:999}
+.float-mode .prompt-text{position:absolute;left:100%;white-space:nowrap;font-weight:600;line-height:80px}
+.float-mode .info-bar{display:none!important}
+.float-mode .editor-overlay{z-index:1000}
+
+/* 拖动手柄 */
+.float-mode .drag-handle{position:fixed;bottom:0;left:0;right:0;height:28px;background:rgba(30,30,30,0.6);display:flex;align-items:center;justify-content:center;z-index:998}
+.float-mode .drag-handle::after{content:'';width:36px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px}
+
+/* 悬浮控制球 */
+.float-fab{display:none;position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:1000;
+  width:44px;height:44px;border-radius:50%;background:rgba(15,52,96,0.85);color:#fff;border:none;
+  font-size:20px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.4)}
+.float-mode .float-fab{display:flex;align-items:center;justify-content:center}
+
+/* ========== 自拍模式：相机嵌入页面 ========== */
+.selfie-mode .prompt-stage{z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,0.55),rgba(0,0,0,0.3),rgba(0,0,0,0.55))}
+.selfie-mode .camera-layer{position:fixed;inset:0;z-index:1}
+.selfie-mode .camera-layer video{width:100%;height:100%;object-fit:cover}
+.selfie-mode .camera-layer.mirrored video{transform:scaleX(-1)}
+.selfie-mode .prompt-text{text-shadow:0 2px 8px rgba(0,0,0,0.8)}
+.selfie-mode .controls{background:rgba(0,0,0,0.7)}
+.selfie-mode .info-bar{background:rgba(0,0,0,0.5)}
+
+/* ===== 控制栏 ===== */
+.controls{position:fixed;bottom:0;left:0;right:0;background:rgba(30,30,30,0.95);backdrop-filter:blur(10px);
+  padding:10px 16px;padding-bottom:max(10px,env(safe-area-inset-bottom));
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;
+  z-index:100;border-top:1px solid #333;transition:opacity 0.3s}
+.controls.hide{opacity:0;pointer-events:none}
+.float-mode .controls{position:fixed;bottom:36px;background:rgba(30,30,30,0.8);padding:8px;display:none}
+.float-mode .controls.show{display:flex}
+
+.btn{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;border:1px solid #555;border-radius:8px;
+  background:#2a2a2a;color:#ddd;font-size:14px;cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.btn:active{background:#444}
+.btn.active{background:#0f3460;border-color:#0f3460;color:#fff}
+.btn.lg{padding:10px 20px;font-size:16px}
+input[type=range]{width:80px;accent-color:#0f3460}
+select{padding:6px 10px;background:#111;border:1px solid #555;border-radius:6px;color:#fff;font-size:13px}
+
+/* ===== 编辑面板 ===== */
+.editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:200;display:none;flex-direction:column;
+  padding:16px;padding-top:max(16px,env(safe-area-inset-top))}
+.editor-overlay.show{display:flex}
+.editor-overlay textarea{flex:1;width:100%;background:#111;border:1px solid #333;border-radius:10px;
+  color:#fff;font-size:16px;padding:16px;resize:none;line-height:1.6}
+.editor-bar{display:flex;gap:8px;padding:12px 0;flex-wrap:wrap}
+
+/* ===== 顶部信息条 ===== */
+.info-bar{position:fixed;top:0;left:0;right:0;padding:8px 16px;padding-top:max(8px,env(safe-area-inset-top));
+  background:rgba(0,0,0,0.6);font-size:12px;color:#666;z-index:99;
+  display:flex;justify-content:space-between;transition:opacity 0.3s}
+.info-bar.hide{opacity:0;pointer-events:none}
+
+/* ===== 响应式 ===== */
+@media(max-width:768px){
+  .standard-mode .prompt-text{left:3vw;right:3vw}
+  .controls{gap:6px;padding:8px 10px}
+  .btn{padding:7px 10px;font-size:12px}
+  .btn.lg{padding:8px 14px;font-size:14px}
+  .hide-mobile{display:none!important}
+  .float-mode .prompt-stage{height:56px}
+  .float-mode .prompt-text{line-height:56px}
+}
+@media(min-width:769px){
+  .show-mobile{display:none!important}
+}
+</style>
+</head>
+<body class="standard-mode">
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+
+<div class="info-bar" id="infoBar">
+  <span id="wordCount">0 字</span>
+  <span id="timeEst">--</span>
+</div>
+
+<div class="camera-layer" id="cameraLayer" style="display:none">
+  <video id="cameraVideo" autoplay playsinline muted></video>
+</div>
+
+<div class="prompt-stage" id="stage">
+  <div class="prompt-text" id="text"></div>
+</div>
+
+<button class="float-fab" id="floatFab" onclick="togglePanel()">⚙</button>
+
+<!-- 浮动提示线 -->
+<div class="drag-handle" id="dragHandle" style="display:none"></div>
+
+<div class="controls" id="controls">
+  <button class="btn lg" id="btnPlay" onclick="togglePlay()">▶ 开始</button>
+  <button class="btn" onclick="toggleMirror()" id="btnMirror">🪞 镜像</button>
+  <button class="btn hide-mobile" onclick="editScript()">📝 文案</button>
+  <button class="btn show-mobile" onclick="editScript()">📝</button>
+  <button class="btn" id="btnFloat" onclick="toggleFloatMode()">📱 悬浮</button>
+  <button class="btn" id="btnSelfie" onclick="toggleSelfieMode()">🤳 自拍</button>
+  <button class="btn" id="btnVoice" onclick="toggleVoiceMode()">🎙 语音跟随</button>
+  <label class="btn hide-mobile">字号 <input type="range" id="fontSize" min="20" max="200" value="72" oninput="updateSettings()"></label>
+  <label class="btn show-mobile"><input type="range" id="fontSizeM" min="20" max="120" value="48" oninput="updateSettings()"></label>
+  <label class="btn hide-mobile">速度 <input type="range" id="speed" min="10" max="300" value="60" oninput="updateSettings()"></label>
+  <label class="btn show-mobile"><input type="range" id="speedM" min="10" max="300" value="60" oninput="updateSettings()"></label>
+  <select id="fontColor" onchange="updateSettings()" class="hide-mobile">
+    <option value="#fff">白字</option><option value="#0f0">绿字</option><option value="#ff0">黄字</option><option value="#0ff">青字</option>
+  </select>
+  <button class="btn hide-mobile" onclick="toggleFullscreen()">⛶ 全屏</button>
+</div>
+
+<div class="editor-overlay" id="editor">
+  <textarea id="editorText" placeholder="粘贴文案...&#10;&#10;提示：提词器会按行滚动，用空行分隔段落效果更好。"></textarea>
+  <div class="editor-bar">
+    <button class="btn" onclick="loadSample()">📋 示例文案</button>
+    <button class="btn" onclick="importFile()">📂 导入txt</button>
+    <input type="file" id="fileInput" accept=".txt" style="display:none" onchange="handleFile(this)">
+    <button class="btn lg" onclick="applyScript()" style="background:#27ae60;border-color:#27ae60">✅ 确定</button>
+    <button class="btn" onclick="closeEditor()">取消</button>
+  </div>
+</div>
+
+<script>
+// ===== 状态 =====
+let playing = false, position = 0, mirror = false, floatMode = false, selfieMode = false;
+let fontSize = 72, speed = 60;
+let fontColor = '#fff', bgColor = '#000';
+let animFrame, lastTime = 0;
+let cameraStream = null;
+
+const stage = document.getElementById('stage');
+const textEl = document.getElementById('text');
+const btnPlay = document.getElementById('btnPlay');
+const infoBar = document.getElementById('infoBar');
+const body = document.body;
+const cameraLayer = document.getElementById('cameraLayer');
+const cameraVideo = document.getElementById('cameraVideo');
+
+// ===== 示例 =====
+function getSample(){
+  return `欢迎使用提词器
+
+这是一个多功能的提词器工具
+适用于视频录制、演讲练习、直播等场景
+
+📌 标准模式：大字幕、适合远距离看
+📱 悬浮模式：窄条置顶、适合录屏用
+
+你可以调整滚动速度和字号
+镜像翻转适配物理提词器
+手机端点击屏幕中间暂停
+
+祝你使用愉快！`;
+}
+
+// ===== 模式切换 =====
+function toggleFloatMode(){
+  floatMode = !floatMode;
+  if(floatMode){
+    body.classList.remove('standard-mode');
+    body.classList.add('float-mode');
+    document.getElementById('btnFloat').textContent = '📺 标准';
+    document.getElementById('btnFloat').classList.add('active');
+    document.getElementById('dragHandle').style.display = 'flex';
+    // 悬浮模式字号自动缩小
+    if(fontSize > 36) fontSize = 28;
+    position = -stage.clientWidth;
+    stage.style.top = '0px';
+  } else {
+    body.classList.remove('float-mode');
+    body.classList.add('standard-mode');
+    document.getElementById('btnFloat').textContent = '📱 悬浮';
+    document.getElementById('btnFloat').classList.remove('active');
+    document.getElementById('dragHandle').style.display = 'none';
+    document.getElementById('controls').classList.remove('show');
+    fontSize = parseInt(localStorage.getItem('tp_fontSize_std')) || 72;
+    position = -stage.clientHeight * 0.35;
+    textEl.style.left = '5vw';
+    textEl.style.right = '5vw';
+  }
+  localStorage.setItem('tp_floatMode', floatMode);
+  syncControls();
+  applyStyle();
+  updateTextTransform();
+}
+
+// ===== 自拍模式：相机嵌入页面 =====
+async function toggleSelfieMode(){
+  if(selfieMode){
+    // 关闭
+    selfieMode = false;
+    body.classList.remove('selfie-mode');
+    document.getElementById('btnSelfie').classList.remove('active');
+    cameraLayer.style.display = 'none';
+    if(cameraStream){
+      cameraStream.getTracks().forEach(t=>t.stop());
+      cameraStream = null;
+    }
+    fontSize = parseInt(localStorage.getItem('tp_fontSize_std')) || 72;
+    syncControls();
+    applyStyle();
+    return;
+  }
+
+  // 开启：请求摄像头
+  try{
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {facingMode:'user', width:{ideal:1080}, height:{ideal:1920}},
+      audio: false
+    });
+    cameraVideo.srcObject = cameraStream;
+    cameraLayer.style.display = 'block';
+    selfieMode = true;
+    body.classList.add('selfie-mode');
+    document.getElementById('btnSelfie').classList.add('active');
+    // 自拍模式字号自适应
+    if(fontSize > 40) fontSize = 36;
+    syncControls();
+    applyStyle();
+  } catch(e){
+    alert('无法打开摄像头: ' + e.message + '\n\n请确保已授予摄像头权限，并使用 HTTPS 访问');
+  }
+}
+
+// ===== 语音跟随模式 =====
+let voiceMode = false;
+let recognition = null;
+let voicePosition = 0; // 已读到的脚本字符位置
+
+function toggleVoiceMode(){
+  if(!voiceMode){
+    startVoiceMode();
+  } else {
+    stopVoiceMode();
+  }
+}
+
+function startVoiceMode(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    alert('你的浏览器不支持语音识别\n\n请使用 Chrome 或 Edge 打开');
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'zh-CN';
+  recognition.continuous = true;       // 持续监听
+  recognition.interimResults = true;   // 返回中间结果
+  recognition.maxAlternatives = 1;
+
+  const script = textEl.textContent || '';
+  // 清理脚本用于匹配：去掉空白和标点，保留有效字符
+  const cleanScript = script.replace(/[\s\n\r]+/g, '');
+
+  recognition.onresult = function(event){
+    // 取最新的识别结果
+    let transcript = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      transcript += event.results[i][0].transcript;
+    }
+
+    // 清理识别文本
+    const cleanTranscript = transcript.replace(/[\s\n\r]+/g, '');
+
+    // 在脚本中查找匹配位置
+    if(cleanTranscript.length > 2){
+      let bestPos = 0, bestLen = 0;
+      // 滑动窗口匹配：找脚本中哪个位置和识别文本最匹配
+      const minLen = Math.min(cleanTranscript.length, cleanScript.length);
+      for(let i = 0; i <= cleanScript.length - 3; i++){
+        let matchLen = 0;
+        for(let j = 0; j < Math.min(minLen, cleanScript.length - i); j++){
+          if(cleanScript[i+j] === cleanTranscript[j]) matchLen++;
+          else break;
+        }
+        if(matchLen > bestLen){
+          bestLen = matchLen;
+          bestPos = i;
+        }
+      }
+
+      if(bestLen >= 3){
+        voicePosition = bestPos;
+
+        // 计算在脚本中的位置比例
+        const ratio = cleanScript.length > 0 ? voicePosition / cleanScript.length : 0;
+
+        if(floatMode || selfieMode){
+          // 水平滚动：文字在屏幕中滚动
+          const totalW = textEl.scrollWidth;
+          const visibleW = stage.clientWidth;
+          // 目标：让当前词在屏幕左侧约 30% 处
+          const targetX = -(totalW * ratio) + visibleW * 0.3;
+          position = Math.min(0, targetX);
+        } else {
+          // 垂直滚动
+          const totalH = textEl.scrollHeight;
+          const visibleH = stage.clientHeight;
+          const targetY = -(totalH * ratio) + visibleH * 0.4;
+          position = Math.min(0, targetY);
+        }
+        updateTextTransform();
+      }
+    }
+  };
+
+  recognition.onerror = function(e){
+    console.log('语音识别错误:', e.error);
+    if(e.error === 'no-speech' || e.error === 'aborted') return; // 正常情况
+    // 其他错误继续尝试
+  };
+
+  recognition.onend = function(){
+    // 如果还在语音模式，自动重启（保持持续监听）
+    if(voiceMode) recognition.start();
+  };
+
+  recognition.start();
+  voiceMode = true;
+  document.getElementById('btnVoice').classList.add('active');
+  document.getElementById('btnVoice').textContent = '🎙 跟随中...';
+}
+
+function stopVoiceMode(){
+  voiceMode = false;
+  if(recognition){
+    recognition.stop();
+    recognition = null;
+  }
+  document.getElementById('btnVoice').classList.remove('active');
+  document.getElementById('btnVoice').textContent = '🎙 语音跟随';
+}
+
+function togglePanel(){
+  const c = document.getElementById('controls');
+  c.classList.toggle('show');
+}
+
+// ===== 拖拽悬浮条位置 =====
+let dragging = false, dragStartY = 0, barStartTop = 0;
+document.getElementById('stage').addEventListener('touchstart', function(e){
+  if(!floatMode) return;
+  // 只在悬浮条边缘触发拖拽
+  const rect = stage.getBoundingClientRect();
+  if(e.touches[0].clientY < rect.top || e.touches[0].clientY > rect.bottom + 10) return;
+  dragging = true;
+  dragStartY = e.touches[0].clientY;
+  barStartTop = parseInt(stage.style.top) || 0;
+  e.preventDefault();
+},{passive:false});
+
+document.addEventListener('touchmove', function(e){
+  if(!dragging) return;
+  const dy = e.touches[0].clientY - dragStartY;
+  const newTop = Math.max(0, Math.min(window.innerHeight - 100, barStartTop + dy));
+  stage.style.top = newTop + 'px';
+});
+
+document.addEventListener('touchend', function(){ dragging = false; });
+
+// ===== 初始化 =====
+function init(){
+  floatMode = localStorage.getItem('tp_floatMode') === 'true';
+  if(!floatMode){
+    fontSize = parseInt(localStorage.getItem('tp_fontSize_std')) || (window.innerWidth<768?48:72);
+  } else {
+    fontSize = parseInt(localStorage.getItem('tp_fontSize')) || 28;
+  }
+  speed = parseInt(localStorage.getItem('tp_speed')) || 60;
+  fontColor = localStorage.getItem('tp_fontColor') || '#fff';
+  mirror = localStorage.getItem('tp_mirror') === 'true';
+
+  const saved = localStorage.getItem('teleprompter_script');
+  document.getElementById('editorText').value = saved || getSample();
+  applyScript();
+
+  if(floatMode){
+    body.classList.remove('standard-mode');
+    body.classList.add('float-mode');
+    document.getElementById('btnFloat').textContent = '📺 标准';
+    document.getElementById('btnFloat').classList.add('active');
+    document.getElementById('dragHandle').style.display = 'flex';
+  }
+
+  syncControls();
+  applyStyle();
+}
+
+function syncControls(){
+  document.getElementById('fontSize').value = fontSize;
+  document.getElementById('fontSizeM').value = fontSize;
+  document.getElementById('speed').value = speed;
+  document.getElementById('speedM').value = speed;
+  document.getElementById('fontColor').value = fontColor;
+  document.getElementById('btnMirror').classList.toggle('active', mirror);
+}
+
+// ===== 文案 =====
+function applyScript(){
+  const text = document.getElementById('editorText').value.trim();
+  if(!text) return;
+  localStorage.setItem('teleprompter_script', text);
+  textEl.textContent = text;
+  document.getElementById('wordCount').textContent = text.replace(/\s/g,'').length + ' 字';
+  resetPosition();
+  closeEditor();
+}
+
+function resetPosition(){
+  if(floatMode || selfieMode){
+    position = -stage.clientWidth;
+    textEl.style.left = '100%';
+    textEl.style.right = 'auto';
+  } else {
+    position = -stage.clientHeight * 0.35;
+    textEl.style.left = '5vw';
+    textEl.style.right = '5vw';
+  }
+  updateTextTransform();
+}
+
+// ===== 动画 =====
+function animate(timestamp){
+  if(!playing){ animFrame = requestAnimationFrame(animate); return; }
+  if(lastTime && timestamp){
+    const dt = (timestamp - lastTime) / 1000;
+    position -= speed * dt;
+    updateTextTransform();
+  }
+  lastTime = timestamp;
+
+  // 估算剩余
+  if(floatMode || selfieMode){
+    const totalW = textEl.scrollWidth;
+    const remaining = Math.max(0, totalW + position);
+    const sec = Math.round(remaining / speed);
+    document.getElementById('timeEst').textContent = sec>0 ? `剩${sec}s` : '完';
+  } else {
+    const totalH = textEl.scrollHeight;
+    const remaining = Math.max(0, totalH + position);
+    const sec = Math.round(remaining / speed);
+    document.getElementById('timeEst').textContent = sec>0 ? `剩余 ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '结束';
+  }
+
+  animFrame = requestAnimationFrame(animate);
+}
+
+function updateTextTransform(){
+  let t = '';
+  if(floatMode || selfieMode){
+    t = `translateX(${position}px)`;
+    if(mirror) t = `scaleX(-1) ${t}`;
+  } else {
+    t = `translateY(${position}px)`;
+    if(mirror) t = `scaleX(-1) ${t}`;
+  }
+  textEl.style.transform = t;
+}
+
+// ===== 控制 =====
+function togglePlay(){
+  playing = !playing;
+  btnPlay.textContent = playing ? '⏸ 暂停' : '▶ 开始';
+  btnPlay.classList.toggle('active', playing);
+  if(playing) lastTime = 0;
+}
+
+function toggleMirror(){
+  mirror = !mirror;
+  localStorage.setItem('tp_mirror', mirror);
+  document.getElementById('btnMirror').classList.toggle('active', mirror);
+  updateTextTransform();
+}
+
+function updateSettings(){
+  const isMobile = window.innerWidth < 768;
+  fontSize = parseInt(document.getElementById(isMobile&&!floatMode?'fontSizeM':'fontSize').value);
+  speed = parseInt(document.getElementById(isMobile&&!floatMode?'speedM':'speed').value);
+  fontColor = document.getElementById('fontColor').value;
+  if(floatMode){
+    localStorage.setItem('tp_fontSize', fontSize);
+  } else {
+    localStorage.setItem('tp_fontSize_std', fontSize);
+  }
+  localStorage.setItem('tp_speed', speed);
+  localStorage.setItem('tp_fontColor', fontColor);
+  syncControls();
+  applyStyle();
+}
+
+function applyStyle(){
+  textEl.style.fontSize = fontSize + 'px';
+  textEl.style.color = fontColor;
+  if(!floatMode){
+    stage.style.background = bgColor;
+    body.style.background = bgColor;
+  }
+}
+
+function toggleFullscreen(){
+  if(document.fullscreenElement){ document.exitFullscreen(); }
+  else { document.body.requestFullscreen().catch(()=>{}); }
+}
+
+// ===== 编辑 =====
+function editScript(){ document.getElementById('editor').classList.add('show'); document.getElementById('editorText').focus(); }
+function closeEditor(){ document.getElementById('editor').classList.remove('show'); }
+function importFile(){ document.getElementById('fileInput').click(); }
+function handleFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('editorText').value = e.target.result; applyScript(); };
+  reader.readAsText(file);
+}
+function loadSample(){ document.getElementById('editorText').value = getSample(); applyScript(); }
+
+// ===== 键盘 =====
+document.addEventListener('keydown', e => {
+  if(document.getElementById('editor').classList.contains('show')) return;
+  switch(e.code){
+    case 'Space': e.preventDefault(); togglePlay(); break;
+    case 'KeyM': toggleMirror(); break;
+    case 'KeyE': editScript(); break;
+    case 'KeyF': toggleFullscreen(); break;
+    case 'KeyB': toggleFloatMode(); break;
+    case 'ArrowUp': speed = Math.min(300, speed+5); syncControls(); localStorage.setItem('tp_speed',speed); break;
+    case 'ArrowDown': speed = Math.max(10, speed-5); syncControls(); localStorage.setItem('tp_speed',speed); break;
+  }
+});
+
+// ===== 触摸：点击中间暂停（非特殊模式下）=====
+stage.addEventListener('click', e => {
+  if(floatMode || selfieMode || voiceMode) return;
+  const h = stage.clientHeight, y = e.clientY;
+  if(y > h*0.3 && y < h*0.7) togglePlay();
+});
+
+// ===== 自动隐藏控件 =====
+let hideTimer;
+function showControls(){
+  document.getElementById('controls').classList.remove('hide');
+  infoBar.classList.remove('hide');
+  clearTimeout(hideTimer);
+  if(playing) hideTimer = setTimeout(hideControls, 3000);
+}
+function hideControls(){
+  if(!playing || floatMode) return;
+  document.getElementById('controls').classList.add('hide');
+  infoBar.classList.add('hide');
+}
+stage.addEventListener('click', showControls);
+stage.addEventListener('touchstart', showControls);
+document.getElementById('controls').addEventListener('mouseenter', showControls);
+document.addEventListener('mousemove', e => {
+  if(e.clientY > window.innerHeight - 120) showControls();
+});
+
+init();
+animFrame = requestAnimationFrame(animate);
+</script>
+<script src="/assets/counter.js" defer></script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>留言板 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --surface: #111a2e;
+      --surface-hover: #162240;
+      --border: rgba(56, 189, 248, .08);
+      --border-hover: rgba(56, 189, 248, .2);
+      --cyan: #38bdf8;
+      --cyan-dim: rgba(56, 189, 248, .08);
+      --text: #e2e8f0;
+      --text-dim: #7f8ea3;
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 20px 40px;
+    }
+    .header-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 20px;
+      transition: color .2s;
+    }
+    .header-link:hover { color: var(--cyan); }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .form-card:focus-within {
+      border-color: var(--border-hover);
+    }
+    input, textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    input { margin-bottom: 12px; }
+    input::placeholder, textarea::placeholder { color: var(--text-dim); }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.6;
+    }
+    .form-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .char-count {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .char-count.over { color: #ef4444; }
+    .btn {
+      background: var(--cyan);
+      color: #0a0e17;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-loading {
+      position: relative;
+      color: transparent;
+    }
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      top: 50%; left: 50%;
+      margin: -8px 0 0 -8px;
+      border: 2px solid #0a0e17;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .messages { list-style: none; }
+    .msg-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .msg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .msg-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--cyan);
+    }
+    .msg-time {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .msg-content {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .empty {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--text-dim);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transition: all .3s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .loading-dots {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-dim);
+    }
+    .loading-dots::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0% { content: ''; }
+      33% { content: '.'; }
+      66% { content: '..'; }
+      100% { content: '...'; }
+    }
+  </style>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container"><h1>💬 留言板</h1>
+    <p class="subtitle">想要什么新工具？有什么建议？在这里留言告诉我</p>
+
+    <div class="form-card">
+      <input type="text" id="nameInput" placeholder="你的名字（可选）" maxlength="20">
+      <textarea id="contentInput" placeholder="写下你想推荐的工具或建议..." maxlength="500"></textarea>
+      <div class="form-footer">
+        <span class="char-count" id="charCount">0/500</span>
+        <button class="btn" id="submitBtn">提交留言</button>
+      </div>
+    </div>
+
+    <div id="messagesContainer">
+      <div class="loading-dots" id="loadingHint">加载留言中</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '/api/message-board';
+    const nameInput = document.getElementById('nameInput');
+    const contentInput = document.getElementById('contentInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const charCount = document.getElementById('charCount');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const loadingHint = document.getElementById('loadingHint');
+    const toast = document.getElementById('toast');
+
+    let toastTimer = null;
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    contentInput.addEventListener('input', () => {
+      const len = contentInput.value.length;
+      charCount.textContent = `${len}/500`;
+      charCount.className = 'char-count' + (len > 500 ? ' over' : '');
+    });
+
+    async function loadMessages() {
+      try {
+        const res = await fetch(`${API}/messages`);
+        const json = await res.json();
+        if (json.success) renderMessages(json.data);
+      } catch (e) {
+        loadingHint.textContent = '加载失败，请刷新重试';
+      }
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      const now = new Date();
+      const diff = now - d;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff/60000) + '分钟前';
+      if (diff < 86400000) return Math.floor(diff/3600000) + '小时前';
+      return `${d.getMonth()+1}月${d.getDate()}日`;
+    }
+
+    function renderMessages(messages) {
+      if (!messages || messages.length === 0) {
+        messagesContainer.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">📭</div>
+            <div>还没有留言，来写下第一个建议吧！</div>
+          </div>`;
+        return;
+      }
+      let html = '<div class="messages">';
+      for (const msg of messages) {
+        html += `
+          <div class="msg-card">
+            <div class="msg-header">
+              <span class="msg-name">${escapeHtml(msg.name)}</span>
+              <span class="msg-time">${formatTime(msg.createdAt)}</span>
+            </div>
+            <div class="msg-content">${escapeHtml(msg.content)}</div>
+          </div>`;
+      }
+      html += '</div>';
+      messagesContainer.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    submitBtn.addEventListener('click', async () => {
+      const content = contentInput.value.trim();
+      if (!content) {
+        showToast('请填写留言内容');
+        return;
+      }
+      if (content.length > 500) {
+        showToast('留言不能超过500字');
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.classList.add('btn-loading');
+      try {
+        const res = await fetch(`${API}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: nameInput.value.trim(),
+            content
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          contentInput.value = '';
+          charCount.textContent = '0/500';
+          showToast('留言成功！');
+          await loadMessages();
+        } else {
+          showToast(json.error || '提交失败');
+        }
+      } catch (e) {
+        showToast('网络错误，请稍后重试');
+      }
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('btn-loading');
+    });
+
+    // 允许回车提交
+    contentInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitBtn.click();
+      }
+    });
+
+    loadMessages();
+  </script>
+<script src="/assets/counter.js" defer></script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

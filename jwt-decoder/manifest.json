@@ -1,0 +1,11 @@
+{
+  "id": "jwt-decoder",
+  "name": "JWT 解码器",
+  "description": "纯本地解析 JSON Web Token，查看 Header 和 Payload，隐私安全",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev"],
+  "tags": ["JWT", "Token", "解码", "认证"],
+  "features": ["本地解析", "Header/Payload 查看", "隐私安全"]
+}

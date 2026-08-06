@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/chaotools/chaotools/discussions
+    about: 提出问题、讨论功能
+  - name: 📖 文档
+    url: https://github.com/chaotools/chaotools#readme
+    about: 查看项目文档

@@ -1,0 +1,17 @@
+__pycache__/
+outputs/
+uploads/
+backgrounds/*.jpg
+backgrounds/*.png
+backgrounds/*.mp4
+backgrounds/state.json
+*.pyc
+.env
+/tmp/
+*.bak
+*.bak2
+*.bak3
+server.py.gpu_full
+server.py.old_broken
+backgrounds/
+!backgrounds/inbox/.gitkeep

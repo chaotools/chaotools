@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="system">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>龙虎榜游资分析 · LHB Analyzer</title>
+<style>
+  :root {
+    --bg: #0b0f1a; --bg2: #111729; --card: rgba(255,255,255,.06);
+    --card-border: rgba(255,255,255,.12); --text: #e8ecf4; --muted: #98a2b8;
+    --accent: #06b6d4; --accent2: #fb923c;      /* 湖蓝 + 珊瑚橙 */
+    --accent-rgb: 6,182,212; --accent2-rgb: 251,146,60;
+    --up: #ff5b6e; --down: #2fd98a;              /* 涨/买入=红  跌/卖出=绿 */
+    --shadow: 0 8px 32px rgba(0,0,0,.35);
+  }
+  html[data-theme="light"] {
+    --bg: #f3f5fb; --bg2: #e9edf7; --card: rgba(255,255,255,.72);
+    --card-border: rgba(20,30,60,.10); --text: #1a2236; --muted: #5a647a;
+    --accent: #0891b2; --accent2: #ea580c;      /* 浅色模式加深对比 */
+    --accent-rgb: 8,145,178; --accent2-rgb: 234,88,12;
+    --up: #e0314b; --down: #0e9f5e; --shadow: 0 8px 28px rgba(40,60,120,.12);
+  }
+  html[data-theme="dark"] { /* 同默认 */ }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text); background: var(--bg); overflow-x: hidden; min-height: 100vh;
+  }
+  #bg-canvas { position: fixed; inset: 0; z-index: -2; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(1200px 600px at 70% -10%, var(--bg2), transparent 60%);
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px 64px; }
+
+  /* 顶栏 */
+  header { display: flex; align-items: center; gap: 16px; padding: 22px 0 8px; }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: .5px; color: var(--accent); }
+  .spacer { flex: 1; }
+  .theme-switch { display: flex; background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 999px; padding: 3px; backdrop-filter: blur(10px); }
+  .theme-switch button { border: 0; background: transparent; color: var(--muted);
+    padding: 7px 13px; border-radius: 999px; cursor: pointer; font-size: 13px; transition: .2s; }
+  .theme-switch button.active { background: var(--accent); color: #fff; }
+
+  /* Hero */
+  .hero { padding: 40px 0 26px; animation: fadeUp .6s ease; }
+  .hero h1 { font-size: clamp(28px, 5vw, 46px); margin: 0 0 10px; line-height: 1.15; }
+  .hero p { color: var(--muted); max-width: 640px; font-size: 15px; line-height: 1.7; margin: 0; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 8px; margin: 18px 0 22px; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--card-border); background: var(--card); color: var(--muted);
+    padding: 10px 18px; border-radius: 12px; cursor: pointer; font-size: 14px; backdrop-filter: blur(10px);
+    transition: .2s; }
+  .tab.active { color: #fff; border-color: transparent; background: var(--accent); }
+
+  /* 玻璃卡片 */
+  .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 18px 20px; backdrop-filter: blur(16px); box-shadow: var(--shadow); animation: fadeUp .5s ease; }
+  .grid { display: grid; gap: 16px; }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 820px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
+
+  .section-title { font-size: 15px; font-weight: 700; margin: 0 0 14px; color: var(--text);
+    display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ""; width: 4px; height: 16px; border-radius: 4px;
+    background: var(--accent); }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input, select { background: var(--bg2); border: 1px solid var(--card-border); color: var(--text);
+    padding: 9px 12px; border-radius: 10px; font-size: 14px; outline: none; }
+  input:focus, select:focus { border-color: var(--accent); }
+  .btn { border: 0; cursor: pointer; padding: 9px 16px; border-radius: 10px; font-size: 14px;
+    background: var(--accent); color: #fff; transition: .15s; }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .btn.ghost { background: var(--card); border: 1px solid var(--card-border); color: var(--text); }
+  .btn.sm { padding: 6px 11px; font-size: 13px; }
+
+  /* 排行列表 */
+  .rank { display: flex; flex-direction: column; gap: 8px; }
+  .rank-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 12px;
+    background: rgba(255,255,255,.03); border: 1px solid var(--card-border); }
+  .rank-item.clickable, .stock-card.clickable, tr.clickable { cursor: pointer; transition: background .15s; }
+  .rank-item.clickable:hover, .stock-card.clickable:hover, tr.clickable:hover { background: rgba(255,255,255,.08); }
+  html[data-theme="light"] .rank-item.clickable:hover, html[data-theme="light"] .stock-card.clickable:hover, html[data-theme="light"] tr.clickable:hover { background: rgba(20,30,60,.06); }
+  .detail-group { color: var(--accent); font-weight: 700; background: rgba(255,255,255,.05); text-align: left; padding: 10px 10px 6px; }
+  html[data-theme="light"] .detail-group { background: rgba(20,30,60,.05); }
+  .rank-no { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; color: #fff; background: var(--accent); flex: none; }
+  .rank-main { flex: 1; min-width: 0; }
+  .rank-name { font-weight: 600; font-size: 14px; }
+  .rank-sub { font-size: 12px; color: var(--muted); }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(var(--accent-rgb),.18);
+    color: var(--accent); border: 1px solid rgba(var(--accent-rgb),.3); }
+  .tag.up { background: rgba(255,91,110,.16); color: var(--up); border-color: rgba(255,91,110,.3); }
+
+  .stock-card { background: rgba(255,255,255,.03); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 14px; }
+  .stock-card h4 { margin: 0 0 8px; font-size: 15px; }
+  .stock-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .youzi-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; margin: 3px 6px 3px 0;
+    padding: 4px 9px; border-radius: 999px; background: rgba(var(--accent2-rgb),.14); color: var(--accent2);
+    border: 1px solid rgba(var(--accent2-rgb),.28); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--card-border); }
+  th { color: var(--muted); font-weight: 600; }
+  td .amt { font-variant-numeric: tabular-nums; }
+
+  .muted { color: var(--muted); } .up-c { color: var(--up); } .down-c { color: var(--down); }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--card); border: 1px solid var(--card-border); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; font-size: 14px; }
+  .view { display: none; } .view.active { display: block; }
+
+  /* modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none;
+    place-items: center; z-index: 50; backdrop-filter: blur(4px); }
+  .modal-bg.show { display: grid; }
+  .modal { width: min(440px, 92vw); background: var(--bg2); border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 22px; box-shadow: var(--shadow); }
+  .modal h3 { margin: 0 0 16px; }
+  .field { margin-bottom: 12px; } .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field select { width: 100%; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--card); border: 1px solid var(--card-border); color: var(--text); padding: 11px 18px;
+    border-radius: 12px; backdrop-filter: blur(12px); opacity: 0; transition: .25s; pointer-events: none; z-index: 60; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 可滚动列表容器：去掉 Top-N 截断，展示全部 */
+  .scroll { max-height: 460px; overflow-y: auto; padding-right: 6px; margin-right: -6px; }
+  .scroll::-webkit-scrollbar { width: 8px; }
+  .scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 8px; }
+  .scroll::-webkit-scrollbar-track { background: transparent; }
+  .list-count { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+
+  /* ECharts 容器 */
+  .chart { width: 100%; height: 300px; }
+  @media (max-width: 820px) { .chart { height: 260px; } }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+<canvas id="bg-canvas"></canvas>
+<div class="wrap">
+  <header>
+    <div class="logo">🐉 龙虎榜游资分析</div>
+    <div class="spacer"></div>
+    <div class="theme-switch" id="themeSwitch">
+      <button data-theme="light">亮</button>
+      <button data-theme="dark">暗</button>
+      <button data-theme="system" class="active">系统</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>每日 A 股龙虎榜 · 游资动向透视</h1>
+    <p>抓取龙虎榜席位明细，构建「营业部 ⇄ 游资」映射，从个股频次、游资动向、营业部协同、资金净流入四个维度还原主力博弈。数据仅供研究学习，不构成投资建议。</p>
+  </section>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-view="overview">概览</button>
+    <button class="tab" data-view="mapping">游资映射</button>
+    <button class="tab" data-view="history">历史查询</button>
+  </div>
+
+  <!-- 概览 -->
+  <section class="view active" id="view-overview">
+    <div class="row" style="margin-bottom:18px">
+      <select id="ovDate"></select>
+      <select id="ovType">
+        <option value="">全部类型</option>
+        <option>一线游资</option><option>知名游资</option><option>量化基金</option>
+        <option>机构</option><option>机构联动</option><option>其他</option>
+      </select>
+      <select id="ovSide">
+        <option value="net">净额排序</option><option value="buy">按买入额</option><option value="sell">按卖出额</option>
+      </select>
+      <button class="btn" id="ovFetch">拉取当日 (AkShare)</button>
+      <button class="btn ghost" id="ovDemo">载入演示数据</button>
+      <span class="muted" id="ovStatus"></span>
+    </div>
+    <div class="muted" style="margin:-4px 2px 14px;font-size:12px">💡 点击「游资 / 股票」行或图表可下钻当日明细（双向互钻）</div>
+    <div class="muted" id="ovMapInfo" style="margin:0 2px 14px"></div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="section-title">游资净买入 Top10 <span class="list-count" id="ovYouziChartCount"></span></div>
+        <div id="ovChartYouzi" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">个股资金净流入 Top10 <span class="list-count" id="ovNetChartCount"></span></div>
+        <div id="ovChartNet" class="chart"></div>
+      </div>
+    </div>
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">当日买卖方向占比</div>
+        <div id="ovChartSide" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">游资类型分布 (按买入额)</div>
+        <div id="ovChartType" class="chart"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-title">重点个股 · 游资参与数 Top10</div>
+      <div id="ovChartCnt" class="chart"></div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">当日游资活跃度排行 <span class="list-count" id="ovYouziCount"></span></div>
+        <div class="scroll"><div class="rank" id="ovYouzi"></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">当日资金净流入 <span class="list-count" id="ovNetCount"></span></div>
+        <div class="scroll"><div class="rank" id="ovNet"></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-title">重点个股 · 游资参与 <span class="list-count" id="ovStockCount"></span></div>
+      <div class="scroll"><div class="grid cols-3" id="ovStocks"></div></div>
+    </div>
+  </section>
+
+  <!-- 游资映射 -->
+  <section class="view" id="view-mapping">
+    <div class="card" style="margin-bottom:16px">
+      <div class="row">
+        <input id="mpSearch" placeholder="搜索营业部 / 游资名" style="flex:1; min-width:200px" />
+        <select id="mpType"></select>
+        <button class="btn" id="mpAdd">+ 新增映射</button>
+        <button class="btn ghost" id="mpStats">命中率统计</button>
+        <span class="muted" id="mpStatText"></span>
+      </div>
+    </div>
+    <div class="card">
+      <table id="mpTable">
+        <thead><tr><th>游资</th><th>类型</th><th>营业部</th><th>来源</th><th>操作</th></tr></thead>
+        <tbody id="mpBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 历史查询 -->
+  <section class="view" id="view-history">
+    <div class="card" style="margin-bottom:16px">
+      <div class="row">
+        <label class="muted">开始 <input type="date" id="hsStart" /></label>
+        <label class="muted">结束 <input type="date" id="hsEnd" /></label>
+        <input id="hsStock" placeholder="股票代码 (如 600519)" />
+        <input id="hsYouzi" placeholder="游资名 (如 方新侠)" />
+        <select id="hsType">
+          <option value="">全部类型</option>
+          <option>一线游资</option><option>知名游资</option><option>量化基金</option>
+          <option>机构</option><option>机构联动</option><option>其他</option>
+        </select>
+        <select id="hsSide">
+          <option value="net">净额</option><option value="buy">买入</option><option value="sell">卖出</option>
+        </select>
+        <button class="btn" id="hsQuery">查询</button>
+      </div>
+    </div>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="section-title">资金趋势 (买入/卖出/净额)</div>
+        <div id="hsChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">区间游资活跃度 <span class="list-count" id="hsYouziCount"></span></div>
+        <div id="hsYouziChart" class="chart"></div>
+      </div>
+    </div>
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">个股上榜频次 (区间) <span class="list-count" id="hsStockCount"></span></div>
+        <div class="scroll"><div class="rank" id="hsStocks"></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">营业部协同买入 <span class="list-count" id="hsCollabCount"></span></div>
+        <div class="scroll"><table id="hsCollab"><thead><tr><th>营业部 A</th><th>营业部 B</th><th>协同次数</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">区间上榜原因分布</div>
+        <div id="hsChartReason" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">资金阵营多空对比</div>
+        <div id="hsChartCamp" class="chart"></div>
+      </div>
+    </div>
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">龙虎榜每日热度 (上榜家数 / 净买额)</div>
+        <div id="hsChartHeat" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">游资协同关系网络</div>
+        <div id="hsChartGraph" class="chart" style="height:420px"></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">个股买方集中度 Top (一家独大) <span class="list-count" id="hsConcCount"></span></div>
+        <div id="hsChartConc" class="chart"></div>
+        <div class="muted" id="hsConcSummary" style="margin:10px 2px 0;font-size:12px"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">营业部活跃榜 (净买入) <span class="list-count" id="hsBranchCount"></span></div>
+        <div class="scroll"><div class="rank" id="hsBranch"></div></div>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="section-title">连板 / 连续上榜识别 <span class="list-count" id="hsLimitCount"></span></div>
+        <div class="scroll"><div class="rank" id="hsLimit"></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">净买入额 vs 当日涨跌幅</div>
+        <div id="hsChartScatter" class="chart" style="height:360px"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 映射编辑弹窗 -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">新增映射</h3>
+    <div class="field"><label>营业部名称</label><input id="fBranch" placeholder="如 华鑫证券上海宛平南路证券营业部" /></div>
+    <div class="field"><label>营业部代码 (可选)</label><input id="fCode" placeholder="如 12345" /></div>
+    <div class="field"><label>游资称号</label><input id="fYouzi" placeholder="如 炒股养家" /></div>
+    <div class="field"><label>类型</label>
+      <select id="fType">
+        <option>一线游资</option><option>知名游资</option><option>量化基金</option>
+        <option>机构</option><option>机构联动</option><option>其他</option>
+      </select>
+    </div>
+    <div class="field"><label>备注 (可选)</label><input id="fNote" /></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="modalCancel">取消</button>
+      <button class="btn" id="modalSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 下钻明细弹窗 -->
+<div class="modal-bg" id="detailBg">
+  <div class="modal" style="width:min(660px,94vw)">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h3 id="detailTitle"></h3>
+      <button class="btn ghost sm" id="detailClose">关闭</button>
+    </div>
+    <div class="muted" id="detailSub" style="margin:2px 0 12px;font-size:13px"></div>
+    <div class="scroll" style="max-height:54vh">
+      <table id="detailTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+const API = location.pathname.replace(/\/+$/, "");  // 子路径感知：/lhb-analyzer 或 ""
+const $ = (s) => document.querySelector(s);
+const fmt = (x) => { if (x==null) return "—"; const a=Math.abs(x);
+  if (a>=1e8) return (x/1e8).toFixed(2)+"亿"; if (a>=1e4) return (x/1e4).toFixed(2)+"万"; return x.toFixed(2); };
+const pctCls = (x) => x>0?"up-c":(x<0?"down-c":"muted");
+const sign = (x) => (x>0?"+":"")+fmt(x);
+// 去重序号显示：数据源会把同名席位(如多个"机构专用")加 " #2" 后缀以保唯一，
+// 展示时剥离该后缀，点击下钻仍使用原始(带后缀)名称以精确匹配。
+const dispBranch = (s) => (s||"").replace(/ #\d+$/, "");
+
+async function api(path, opts) {
+  const r = await fetch(API+path, opts); const j = await r.json(); if (!j.ok) throw new Error(j.error||"请求失败"); return j;
+}
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
+
+/* ---------- ECharts 图表工具 ---------- */
+const chartMap = {};
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function palette(){ return {
+  accent: cssVar("--accent"), accent2: cssVar("--accent2"),
+  up: cssVar("--up"), down: cssVar("--down"),
+  text: cssVar("--text"), muted: cssVar("--muted"), border: cssVar("--card-border"),
+}; }
+function mkChart(id){
+  if (chartMap[id]) chartMap[id].dispose();
+  const c = echarts.init(document.getElementById(id));
+  chartMap[id] = c; return c;
+}
+window.addEventListener("resize", () => Object.values(chartMap).forEach(c => c.resize()));
+
+function renderYouziBar(id, data, side, onClick){
+  const c = mkChart(id); const p = palette();
+  const col = side==="buy" ? "buy" : side==="sell" ? "sell" : "net";
+  const key = (x) => col==="buy" ? x.buy : col==="sell" ? x.sell : (x.buy - x.sell);
+  const top = [...data].sort((a,b)=>key(b)-key(a)).slice(0,10).reverse();
+  c.setOption({
+    grid:{left:92,right:48,top:10,bottom:24},
+    tooltip:{trigger:"axis", axisPointer:{type:"shadow"},
+      formatter:(ps)=>{const x=top[ps[0].dataIndex]; return `${x.name}<br/>买 ${fmt(x.buy)} · 卖 ${fmt(x.sell)}<br/>净额 ${sign(x.buy-x.sell)}`;}},
+    xAxis:{type:"value", axisLabel:{color:p.muted, formatter:(v)=>fmt(v)}, splitLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"category", data:top.map(x=>x.name), axisLabel:{color:p.text}, axisLine:{lineStyle:{color:p.border}}},
+    series:[{type:"bar", data:top.map(x=>({value:Math.round(key(x)), name:x.name, itemStyle:{color: key(x)>=0?p.up:p.down}})),
+      label:{show:true, position:"right", color:p.muted, formatter:(q)=>fmt(q.value)}}]
+  });
+  if (onClick) c.on("click", (params)=>{ const x = top[params.dataIndex]; if (x) onClick(x); });
+}
+function renderNetBar(id, data, side, onClick){
+  const c = mkChart(id); const p = palette();
+  const col = side==="buy" ? "buy_sum" : side==="sell" ? "sell_sum" : "net";
+  const top = [...data].sort((a,b)=>b[col]-a[col]).slice(0,10).reverse();
+  c.setOption({
+    grid:{left:80,right:48,top:10,bottom:24},
+    tooltip:{trigger:"axis", axisPointer:{type:"shadow"},
+      formatter:(ps)=>{const x=top[ps[0].dataIndex]; return `${x.stock_name}<br/>买 ${fmt(x.buy_sum)} · 卖 ${fmt(x.sell_sum)}<br/>净额 ${sign(x.net)}`;}},
+    xAxis:{type:"value", axisLabel:{color:p.muted, formatter:(v)=>fmt(v)}, splitLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"category", data:top.map(x=>x.stock_name), axisLabel:{color:p.text}, axisLine:{lineStyle:{color:p.border}}},
+    series:[{type:"bar", data:top.map(x=>({value:Math.round(x[col]), code:x.stock_code, name:x.stock_name, itemStyle:{color: x[col]>=0?p.up:p.down}})),
+      label:{show:true, position:"right", color:p.muted, formatter:(q)=>fmt(q.value)}}]
+  });
+  if (onClick) c.on("click", (params)=>{ const x = top[params.dataIndex]; if (x) onClick(x); });
+}
+function renderSidePie(id, data){
+  const c = mkChart(id); const p = palette();
+  const buy = data.reduce((s,x)=>s+(x.buy_sum||0),0);
+  const sell = data.reduce((s,x)=>s+(x.sell_sum||0),0);
+  c.setOption({
+    tooltip:{trigger:"item", formatter:(x)=>`${x.name}: ${fmt(x.value)} (${x.percent}%)`},
+    legend:{bottom:0, textStyle:{color:p.muted}},
+    series:[{type:"pie", radius:["42%","70%"], center:["50%","45%"],
+      label:{color:p.text, formatter:"{b}\n{d}%"},
+      data:[
+        {name:"总买入", value:Math.round(buy), itemStyle:{color:p.up}},
+        {name:"总卖出", value:Math.round(sell), itemStyle:{color:p.down}},
+      ]}]
+  });
+}
+function renderTypePie(id, data){
+  const c = mkChart(id); const p = palette();
+  const m = {}; data.forEach(x=>{ if(x.type) m[x.type]=(m[x.type]||0)+x.buy; });
+  const colors = [p.accent, p.accent2, p.down, p.up, "#facc15", "#e879f9"];
+  const entries = Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  c.setOption({
+    tooltip:{trigger:"item", formatter:(x)=>`${x.name}: ${fmt(x.value)} (${x.percent}%)`},
+    legend:{bottom:0, type:"scroll", textStyle:{color:p.muted}},
+    series:[{type:"pie", radius:["40%","70%"], center:["50%","45%"],
+      label:{color:p.text, formatter:"{b}\n{d}%"},
+      data:entries.map(([k,v],i)=>({name:k, value:Math.round(v), itemStyle:{color:colors[i%colors.length]}}))}]
+  });
+}
+function renderCntBar(id, data){
+  const c = mkChart(id); const p = palette();
+  const top = [...data].sort((a,b)=>b.youzi_cnt-a.youzi_cnt).slice(0,10).reverse();
+  c.setOption({
+    grid:{left:92,right:48,top:10,bottom:24},
+    tooltip:{trigger:"axis", axisPointer:{type:"shadow"}},
+    xAxis:{type:"value", axisLabel:{color:p.muted}, splitLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"category", data:top.map(x=>x.stock_name), axisLabel:{color:p.text}, axisLine:{lineStyle:{color:p.border}}},
+    series:[{type:"bar", data:top.map(x=>x.youzi_cnt), itemStyle:{color:p.accent2},
+      label:{show:true, position:"right", color:p.muted}}]
+  });
+}
+function renderYouziTrend(id, items, side){
+  const c = mkChart(id); const p = palette();
+  const xs = items.map(d=>d.trade_date);
+  const mk = (key,color,name)=>({name, type:"line", smooth:true, showSymbol:false,
+    areaStyle:{opacity:0.12}, lineStyle:{width:2, color}, itemStyle:{color},
+    data:items.map(d=>Math.round(d[key]))});
+  c.setOption({
+    grid:{left:64,right:20,top:34,bottom:40},
+    tooltip:{trigger:"axis", formatter:(ps)=>ps.map(x=>`${x.seriesName} ${fmt(x.value)}`).join("<br/>")},
+    legend:{top:0, textStyle:{color:p.muted}},
+    xAxis:{type:"category", data:xs, axisLabel:{color:p.muted}, axisLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"value", axisLabel:{color:p.muted, formatter:(v)=>fmt(v)}, splitLine:{lineStyle:{color:p.border}}},
+    series:[
+      mk("buy", p.up, "买入"),
+      mk("sell", p.down, "卖出"),
+      mk("net", p.accent, "净额"),
+    ]
+  });
+}
+function renderReasonPie(id, items){
+  const c = mkChart(id); const p = palette();
+  const colors = [p.accent, p.accent2, p.down, p.up, "#facc15", "#e879f9", "#94a3b8", "#60a5fa"];
+  const data = (items||[]).map((x,i)=>({name:x.cat, value:x.cnt, itemStyle:{color:colors[i%colors.length]}}));
+  c.setOption({
+    tooltip:{trigger:"item", formatter:(x)=>`${x.name}: ${x.value} (${x.percent}%)`},
+    legend:{bottom:0, type:"scroll", textStyle:{color:p.muted}, formatter:(n)=>n},
+    series:[{type:"pie", radius:["42%","70%"], center:["50%","44%"],
+      label:{color:p.text, formatter:"{b}\n{d}%"},
+      data}]
+  });
+}
+function renderCampBar(id, items){
+  const c = mkChart(id); const p = palette();
+  const cats = (items||[]).map(x=>x.type);
+  c.setOption({
+    grid:{left:84,right:20,top:30,bottom:60},
+    tooltip:{trigger:"axis", axisPointer:{type:"shadow"},
+      formatter:(ps)=>{const t=ps[0].axisValue; const it=(items||[]).find(x=>x.type===t);
+        return `${t}<br/>买 ${fmt(it.buy)} · 卖 ${fmt(it.sell)}<br/>净额 ${sign(it.net)}`;}},
+    legend:{top:0, textStyle:{color:p.muted}},
+    xAxis:{type:"category", data:cats, axisLabel:{color:p.text, interval:0, rotate:28}, axisLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"value", axisLabel:{color:p.muted, formatter:(v)=>fmt(v)}, splitLine:{lineStyle:{color:p.border}}},
+    series:[
+      {name:"买入", type:"bar", itemStyle:{color:p.up}, data:(items||[]).map(x=>Math.round(x.buy))},
+      {name:"卖出", type:"bar", itemStyle:{color:p.down}, data:(items||[]).map(x=>Math.round(x.sell))},
+    ]
+  });
+}
+function renderHeat(id, items){
+  const c = mkChart(id); const p = palette();
+  const xs = (items||[]).map(d=>d.trade_date);
+  c.setOption({
+    grid:{left:56,right:56,top:30,bottom:40},
+    tooltip:{trigger:"axis", formatter:(ps)=>{const d=(items||[])[ps[0].dataIndex];
+      return `${d.trade_date}<br/>上榜 ${d.listed} 家<br/>净买额 ${sign(d.net)}`;}},
+    legend:{top:0, textStyle:{color:p.muted}},
+    xAxis:{type:"category", data:xs, axisLabel:{color:p.muted}, axisLine:{lineStyle:{color:p.border}}},
+    yAxis:[
+      {type:"value", name:"家数", position:"left", axisLabel:{color:p.muted}, splitLine:{lineStyle:{color:p.border}}},
+      {type:"value", name:"净买额", position:"right", axisLabel:{color:p.muted, formatter:(v)=>fmt(v)}, splitLine:{show:false}},
+    ],
+    series:[
+      {name:"上榜家数", type:"bar", yAxisIndex:0, itemStyle:{color:p.accent, opacity:0.7}, data:(items||[]).map(d=>d.listed)},
+      {name:"净买额", type:"line", yAxisIndex:1, smooth:true, showSymbol:false, lineStyle:{width:2, color:p.accent2}, itemStyle:{color:p.accent2}, data:(items||[]).map(d=>Math.round(d.net))},
+    ]
+  });
+}
+const CAMP_COLORS = {机构:"#06b6d4", 机构联动:"#fb923c", 一线游资:"#ff5b6e", 知名游资:"#2fd98a",
+  量化基金:"#facc15", 其他营业部:"#94a3b8", 其他:"#e879f9"};
+function renderGraph(id, g){
+  const c = mkChart(id); const p = palette();
+  const colOf = (t)=>CAMP_COLORS[t] || "#94a3b8";
+  const data = (g.nodes||[]).map(n=>({name:n.name, value:n.value, type:n.type, symbolSize:n.symbolSize,
+    itemStyle:{color:colOf(n.type), borderColor:"rgba(255,255,255,.25)"}}));
+  const links = (g.links||[]).map(l=>({source:l.source, target:l.target, value:l.value,
+    lineStyle:{width:Math.max(0.5, Math.min(6, l.value))}}));
+  c.setOption({
+    tooltip:{formatter:(o)=> o.dataType==="edge"
+      ? `${o.data.source} ↔ ${o.data.target}<br/>协同 ${o.data.value} 次`
+      : `${o.data.name}<br/>类型 ${o.data.type}<br/>协同 ${o.data.value} 次`},
+    series:[{type:"graph", layout:"force", roam:true, draggable:true,
+      force:{repulsion:160, edgeLength:[40,120], gravity:0.08},
+      label:{show:true, color:p.text, fontSize:11, formatter:(o)=>o.data.name},
+      lineStyle:{color:p.border, curveness:0.08},
+      data, links}]
+  });
+  c.on("click",(o)=>{ if(o.dataType==="node" && o.data.name){
+    const d=$("#hsEnd").value || $("#hsStart").value; openYouziDetail(o.data.name, d); } });
+}
+function renderConcBar(id, items){
+  const c = mkChart(id); const p = palette();
+  const top = [...(items||[])].sort((a,b)=>b.conc-a.conc).slice(0,15).reverse();
+  c.setOption({
+    grid:{left:100,right:50,top:10,bottom:24},
+    tooltip:{trigger:"axis", axisPointer:{type:"shadow"},
+      formatter:(ps)=>{const x=top[ps[0].dataIndex];
+        return `${x.stock_name}<br/>最大席位占比 ${(x.conc*100).toFixed(1)}% · 买入 ${fmt(x.buy_sum)} · ${x.seat_cnt} 席位`;}},
+    xAxis:{type:"value", max:100, axisLabel:{color:p.muted, formatter:(v)=>v+"%"}, splitLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"category", data:top.map(x=>x.stock_name), axisLabel:{color:p.text}, axisLine:{lineStyle:{color:p.border}}},
+    series:[{type:"bar", data:top.map(x=>({value:+(x.conc*100).toFixed(1),
+      itemStyle:{color: x.conc>=0.5?p.up:p.accent}})),
+      label:{show:true, position:"right", color:p.muted, formatter:(q)=>q.value+"%"}}]
+  });
+}
+function renderScatter(id, items){
+  const c = mkChart(id); const p = palette();
+  const pts = (items||[]).map(x=>({
+    value:[x.pct, Math.round(x.net)], name:x.stock_name,
+    date:x.trade_date, code:x.stock_code,
+    itemStyle:{color: x.net>=0 ? p.up : p.down, opacity:0.75},
+  }));
+  c.setOption({
+    grid:{left:68,right:20,top:20,bottom:50},
+    tooltip:{formatter:(o)=>{const d=o.data;
+      return `${d.name} ${d.date}<br/>涨跌幅 ${d.value[0]}%<br/>净买额 ${fmt(d.value[1])}`;}},
+    xAxis:{type:"value", name:"涨跌幅%", nameTextStyle:{color:p.muted},
+      axisLabel:{color:p.muted, formatter:(v)=>v+"%"}, splitLine:{lineStyle:{color:p.border}}},
+    yAxis:{type:"value", name:"净买额", axisLabel:{color:p.muted, formatter:(v)=>fmt(v)}, splitLine:{lineStyle:{color:p.border}}},
+    series:[{type:"scatter", symbolSize:8, data:pts}]
+  });
+}
+
+/* ---------- 主题 ---------- */
+function applyTheme(t){ const m = t==="system" ? (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light") : t;
+  document.documentElement.setAttribute("data-theme", m); }
+function setTheme(t){ applyTheme(t); localStorage.setItem("lhb-theme", t);
+  document.querySelectorAll("#themeSwitch button").forEach(b=>b.classList.toggle("active", b.dataset.theme===t));
+  // 主题切换后重渲染当前视图的图表（重新取色）
+  if ($("#view-overview").classList.contains("active") && $("#ovDate").value) loadReport($("#ovDate").value);
+  else if ($("#view-history").classList.contains("active")) loadHistory();
+}
+document.querySelectorAll("#themeSwitch button").forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
+setTheme(localStorage.getItem("lhb-theme")||"system");
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{ if(localStorage.getItem("lhb-theme")==="system") applyTheme("system"); });
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll("#tabs .tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll("#tabs .tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  t.classList.add("active"); $("#view-"+t.dataset.view).classList.add("active");
+  if (t.dataset.view==="mapping") loadMappings();
+  if (t.dataset.view==="history") loadHistory();
+});
+
+/* ---------- 下钻明细（游资 <-> 股票 双向互钻） ---------- */
+function openYouziDetail(name, date){
+  api(`/api/analysis/youzi-detail?name=${encodeURIComponent(name)}&date=${date}`).then(d=>{
+    $("#detailTitle").textContent = `${dispBranch(d.youzi)} · 当日持仓`;
+    $("#detailSub").textContent = `数据日期 ${d.date} · 买入 ${fmt(d.totals.buy)} · 卖出 ${fmt(d.totals.sell)} · 净额 ${sign(d.totals.buy-d.totals.sell)}`;
+    const thead = $("#detailTable thead"), tb = $("#detailTable tbody");
+    thead.innerHTML = `<tr><th>股票</th><th>买入</th><th>卖出</th><th>净额</th></tr>`;
+    tb.innerHTML = d.stocks.length ? d.stocks.map(s=>`
+      <tr class="clickable"><td>${s.stock_name} <span class="muted">${s.stock_code}</span></td>
+        <td class="amt up-c">${fmt(s.buy)}</td><td class="amt down-c">${fmt(s.sell)}</td>
+        <td class="amt ${pctCls(s.net)}">${sign(s.net)}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="empty">当日无交易</td></tr>`;
+    tb.querySelectorAll("tr.clickable").forEach((el,i)=>{
+      el.onclick = ()=>openStockDetail(d.stocks[i].stock_code, date, d.stocks[i].stock_name);
+    });
+    $("#detailBg").classList.add("show");
+  }).catch(e=>toast(e.message));
+}
+function openStockDetail(code, date, name){
+  api(`/api/analysis/stock-detail?code=${encodeURIComponent(code)}&date=${date}`).then(d=>{
+    $("#detailTitle").textContent = `${d.stock_name||code} · 当日龙虎榜`;
+    $("#detailSub").textContent = `数据日期 ${d.date}`
+      + (d.reason ? ` · 原因：${d.reason}` : "")
+      + (d.pct_change != null ? ` · 涨跌幅 ${d.pct_change}%` : "")
+      + ` · 总买 ${fmt(d.totals.buy)} / 总卖 ${fmt(d.totals.sell)} / 净额 ${sign(d.totals.net)}`;
+    const tb = $("#detailTable tbody");
+    $("#detailTable thead").innerHTML = "";
+    let html = `<tr><th colspan="4" class="detail-group">买方前五（买入金额）</th></tr>`
+      + `<tr><th>游资 / 营业部</th><th>类型</th><th>买入额</th><th></th></tr>`;
+    html += d.buy_top5.length ? d.buy_top5.map((p,i)=>`
+      <tr class="clickable"><td>${dispBranch(p.name)} ${p.is_youzi?'<span class="tag">游资</span>':''}</td>
+        <td><span class="pill">${p.type}</span></td><td class="amt up-c">${fmt(p.amount)}</td><td class="muted">#${i+1}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="empty">无买方数据</td></tr>`;
+    html += `<tr><th colspan="4" class="detail-group">卖方前五（卖出金额）</th></tr>`
+      + `<tr><th>游资 / 营业部</th><th>类型</th><th>卖出额</th><th></th></tr>`;
+    html += d.sell_top5.length ? d.sell_top5.map((p,i)=>`
+      <tr class="clickable"><td>${dispBranch(p.name)} ${p.is_youzi?'<span class="tag">游资</span>':''}</td>
+        <td><span class="pill">${p.type}</span></td><td class="amt down-c">${fmt(p.amount)}</td><td class="muted">#${i+1}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="empty">无卖方数据</td></tr>`;
+    tb.innerHTML = html;
+    const rows = [...d.buy_top5, ...d.sell_top5];
+    tb.querySelectorAll("tr.clickable").forEach((el,i)=>{
+      el.onclick = ()=>openYouziDetail(rows[i].name, date);
+    });
+    $("#detailBg").classList.add("show");
+  }).catch(e=>toast(e.message));
+}
+$("#detailClose").onclick = ()=>$("#detailBg").classList.remove("show");
+$("#detailBg").addEventListener("click", (e)=>{ if(e.target.id==="detailBg") $("#detailBg").classList.remove("show"); });
+
+/* ---------- 概览 ---------- */
+async function loadDates(){ try{ const d=await api("/api/dates"); const sel=$("#ovDate");
+  sel.innerHTML = d.dates.map(x=>`<option>${x}</option>`).join("") || `<option>无数据</option>`;
+  if (d.dates.length) loadReport(d.dates[0]); }catch(e){ toast(e.message); } }
+async function loadReport(date){
+  const type = $("#ovType").value, side = $("#ovSide").value;
+  const [r, mp] = await Promise.all([api("/api/report?date="+date), api("/api/mappings?stats=1")]);
+  let y = r.youzi_ranking||[];
+  const allToday = y.filter(x=>x.is_youzi).length;
+  if (type) y = y.filter(x=>x.type===type);
+  const onType = y.filter(x=>x.is_youzi).length;
+  $("#ovMapInfo").textContent = `数据日期：${date} · 已映射 ${mp.stats.total} 个游资/机构 · 当日上榜 ${allToday} 个`
+    + (type ? ` · 当前「${type}」上榜 ${onType} 个` : "");
+  $("#ovYouziCount").textContent = "("+y.length+")";
+  $("#ovYouzi").innerHTML = y.length ? y.map((y,i)=>`
+    <div class="rank-item"><div class="rank-no">${i+1}</div>
+      <div class="rank-main"><div class="rank-name">${y.name} ${y.is_youzi?'<span class="tag">游资</span>':''}</div>
+        <div class="rank-sub">买 ${fmt(y.buy)} · 卖 ${fmt(y.sell)}</div></div>
+      <div class="${pctCls(y.buy-y.sell)}">${sign(y.buy-y.sell)}</div></div>`).join("")
+    : `<div class="empty">当日无数据</div>`;
+  if (y.length) $("#ovYouzi").querySelectorAll(".rank-item").forEach((el,i)=>{
+    el.classList.add("clickable");
+    el.onclick = ()=>openYouziDetail(y[i].name, date);
+  });
+  const net = (await api(`/api/analysis/netinflow?start=${date}&end=${date}&limit=500`)).items;
+  $("#ovNetCount").textContent = "("+net.length+")";
+  $("#ovNet").innerHTML = net.length ? net.map((s,i)=>`
+    <div class="rank-item"><div class="rank-no">${i+1}</div>
+      <div class="rank-main"><div class="rank-name">${s.stock_name}</div>
+        <div class="rank-sub">${s.stock_code} · 买${fmt(s.buy_sum)}/卖${fmt(s.sell_sum)}</div></div>
+      <div class="${pctCls(s.net)}">${sign(s.net)}</div></div>`).join("")
+    : `<div class="empty">无数据</div>`;
+  if (net.length) $("#ovNet").querySelectorAll(".rank-item").forEach((el,i)=>{
+    el.classList.add("clickable");
+    el.onclick = ()=>openStockDetail(net[i].stock_code, date, net[i].stock_name);
+  });
+  const ks = r.key_stocks||[];
+  $("#ovStockCount").textContent = "("+ks.length+")";
+  $("#ovStocks").innerHTML = ks.length ? ks.map(s=>`
+    <div class="stock-card"><h4>${s.stock_name} <span class="muted">${s.stock_code}</span></h4>
+      <div class="stock-meta">上榜原因：${s.reason||"—"} · 净流入 <span class="${pctCls(s.net)}">${sign(s.net)}</span></div>
+      <div>${s.youzi_list.map(y=>`<span class="youzi-chip">${y.name} 买${fmt(y.buy)}</span>`).join("") || '<span class="muted">无游资参与</span>'}</div></div>`).join("")
+    : `<div class="empty">无数据</div>`;
+  if (ks.length) $("#ovStocks").querySelectorAll(".stock-card").forEach((el,i)=>{
+    el.classList.add("clickable");
+    el.onclick = ()=>openStockDetail(ks[i].stock_code, date, ks[i].stock_name);
+  });
+  // 图表
+  renderYouziBar("ovChartYouzi", y, side, (x)=>openYouziDetail(x.name, date));
+  renderNetBar("ovChartNet", net, side, (x)=>openStockDetail(x.stock_code, date, x.stock_name));
+  renderSidePie("ovChartSide", net);
+  renderTypePie("ovChartType", y);
+  renderCntBar("ovChartCnt", ks);
+  $("#ovYouziChartCount").textContent = "("+y.length+")";
+  $("#ovNetChartCount").textContent = "("+net.length+")";
+}
+$("#ovDate").onchange = (e)=>loadReport(e.target.value);
+$("#ovType").onchange = ()=>loadReport($("#ovDate").value);
+$("#ovSide").onchange = ()=>loadReport($("#ovDate").value);
+$("#ovFetch").onclick = async ()=>{ const d=$("#ovDate").value; if(!d){toast("请先选择日期");return;}
+  $("#ovStatus").textContent="抓取中…"; try{ const r=await api("/api/fetch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({date:d,mode:"akshare"})});
+    $("#ovStatus").textContent=`已插入 ${r.inserted} 条`; loadDates(); }catch(e){ $("#ovStatus").textContent=""; toast(e.message); } };
+$("#ovDemo").onclick = async ()=>{ try{ const r=await api("/api/fetch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"demo"})});
+  toast(`演示数据已载入：${r.inserted} 条`); loadDates(); }catch(e){ toast(e.message); } };
+
+/* ---------- 游资映射 ---------- */
+async function loadTypes(){ try{ const m=await api("/api/mappings?stats=1");
+  const types=["", ...new Set(m.items.map(x=>x.youzi_type))];
+  $("#mpType").innerHTML = types.map(t=>`<option value="${t}">${t||"全部类型"}</option>`).join(""); }catch(e){} }
+async function loadMappings(){ const s=$("#mpSearch").value, t=$("#mpType").value;
+  let q=`/api/mappings?`; if(s) q+=`search=${encodeURIComponent(s)}&`; if(t) q+=`youzi_type=${encodeURIComponent(t)}&`;
+  const m=await api(q); $("#mpBody").innerHTML = m.items.map(x=>`
+    <tr><td>${x.youzi_name}</td><td><span class="pill">${x.youzi_type}</span></td>
+      <td>${x.branch_name}</td><td class="muted">${x.source}</td>
+      <td><button class="btn sm ghost" onclick="editMap(${x.id})">编辑</button>
+          <button class="btn sm" style="background:var(--up)" onclick="delMap(${x.id})">删</button></td></tr>`).join("")
+    || `<tr><td colspan="5" class="empty">无匹配映射</td></tr>`; }
+$("#mpSearch").oninput = debounce(loadMappings, 300);
+$("#mpType").onchange = loadMappings;
+$("#mpStats").onclick = async ()=>{ const m=await api("/api/mappings?stats=1"); const s=m.stats;
+  $("#mpStatText").textContent = `共 ${s.total} 条` + Object.entries(s.by_type).map(([k,v])=>`${k}:${v}`).join("  "); };
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+
+let editId=null;
+function openModal(id){ editId=id||null; $("#modalTitle").textContent=id?"编辑映射":"新增映射"; $("#modalBg").classList.add("show"); }
+$("#mpAdd").onclick=()=>{ ["#fBranch","#fCode","#fYouzi","#fNote"].forEach(s=>$(s).value=""); $("#fType").value="其他"; openModal(null); };
+$("#modalCancel").onclick=()=>$("#modalBg").classList.remove("show");
+window.editMap = async (id)=>{ const m=await api("/api/mappings"); const x=m.items.find(i=>i.id===id);
+  $("#fBranch").value=x.branch_name; $("#fCode").value=x.branch_code||""; $("#fYouzi").value=x.youzi_name;
+  $("#fType").value=x.youzi_type; $("#fNote").value=x.note||""; openModal(id); };
+window.delMap = async (id)=>{ if(!confirm("确认删除该映射？")) return; await api("/api/mappings/"+id,{method:"DELETE"}); toast("已删除"); loadMappings(); };
+$("#modalSave").onclick = async ()=>{ const body={ branch_name:$("#fBranch").value, branch_code:$("#fCode").value,
+  youzi_name:$("#fYouzi").value, youzi_type:$("#fType").value, note:$("#fNote").value };
+  if(!body.branch_name||!body.youzi_name){ toast("营业部与游资名必填"); return; }
+  if(editId){ await api("/api/mappings/"+editId,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); }
+  else { await api("/api/mappings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); }
+  $("#modalBg").classList.remove("show"); toast("已保存"); loadMappings(); };
+
+/* ---------- 历史查询 ---------- */
+async function loadHistory(){
+  const s=$("#hsStart").value, e=$("#hsEnd").value,
+    stock=$("#hsStock").value, youzi=$("#hsYouzi").value,
+    type=$("#hsType").value, side=$("#hsSide").value;
+  let q="/api/history?"; if(s)q+=`start=${s}&`; if(e)q+=`end=${e}&`; if(stock)q+=`stock=${stock}&`; if(youzi)q+=`youzi=${encodeURIComponent(youzi)}&`;
+  const h=await api(q); renderYouziTrend("hsChart", h.items, side);
+  const yt=await api(`/api/analysis/youzi?${s?`start=${s}&`:""}${e?`end=${e}&`:""}${type?`youzi_type=${encodeURIComponent(type)}&`:""}`);
+  renderYouziBar("hsYouziChart", yt.items, side);
+  $("#hsYouziCount").textContent = "("+(yt.items?yt.items.length:0)+")";
+  const st=await api(`/api/analysis/stocks?limit=500${s?`&start=${s}`:""}${e?`&end=${e}`:""}`);
+  $("#hsStocks").innerHTML = st.items.map((x,i)=>`
+    <div class="rank-item"><div class="rank-no">${i+1}</div>
+      <div class="rank-main"><div class="rank-name">${x.stock_name}</div>
+        <div class="rank-sub">上榜 ${x.listed_days} 天 · 涉及 ${x.branch_cnt} 营业部</div></div>
+      <div class="${pctCls(x.net)}">${sign(x.net)}</div></div>`).join("") || `<div class="empty">无数据</div>`;
+  $("#hsStockCount").textContent = "("+(st.items?st.items.length:0)+")";
+  if(!stock && !youzi){
+    const c=await api(`/api/analysis/collab?top=100000${s?`&start=${s}`:""}${e?`&end=${e}`:""}${type?`&youzi_type=${encodeURIComponent(type)}`:""}`);
+    $("#hsCollab").querySelector("tbody").innerHTML = c.collab.map(x=>`<tr><td>${x.branch_a}</td><td>${x.branch_b}</td><td class="amt">${x.co_count}</td></tr>`).join("")
+      || `<tr><td colspan="3" class="empty">无协同数据</td></tr>`;
+    $("#hsCollabCount").textContent = "("+(c.collab?c.collab.length:0)+")";
+  } else {
+    $("#hsCollab").querySelector("tbody").innerHTML=`<tr><td colspan="3" class="empty">选择「股票+游资」留空时显示协同</td></tr>`;
+  }
+
+  // 新增补充分析：原因分布 / 阵营对比 / 每日热度 / 协同网络
+  const qs = (extra="") => `${s?`start=${s}&`:""}${e?`end=${e}&`:""}${type?`youzi_type=${encodeURIComponent(type)}&`:""}${extra}`;
+  const safe = async (fn) => { try { await fn(); } catch(err) { console.warn("补充分析:", err); } };
+  await safe(async () => { const r = await api(`/api/analysis/reasons?${qs()}`); renderReasonPie("hsChartReason", r.items); });
+  await safe(async () => { const r = await api(`/api/analysis/camp?${qs()}`); renderCampBar("hsChartCamp", r.items); });
+  await safe(async () => { const r = await api(`/api/analysis/heat?${qs()}`); renderHeat("hsChartHeat", r.items); });
+  await safe(async () => { const r = await api(`/api/analysis/collab-graph?top=40&${qs()}`); renderGraph("hsChartGraph", r); });
+
+  // 买方集中度 + 营业部活跃榜
+  await safe(async () => {
+    const r = await api(`/api/analysis/concentration?${qs()}`);
+    renderConcBar("hsChartConc", r.items);
+    const s = r.summary || {};
+    $("#hsConcCount").textContent = "(" + (r.items ? r.items.length : 0) + ")";
+    $("#hsConcSummary").textContent =
+      `区间共 ${s.total || 0} 次上榜 · 平均最大席位占比 ${( (s.avg_conc||0)*100 ).toFixed(1)}% · 一家独大(≥50%) ${s.concentrated || 0} 次`;
+  });
+  await safe(async () => {
+    const r = await api(`/api/analysis/branch-activity?${qs()}`);
+    const items = r.items || [];
+    $("#hsBranchCount").textContent = "(" + items.length + ")";
+    $("#hsBranch").innerHTML = items.length ? items.map((x,i)=>`
+      <div class="rank-item"><div class="rank-no">${i+1}</div>
+        <div class="rank-main"><div class="rank-name">${x.branch}</div>
+          <div class="rank-sub">活跃 ${x.active_days} 天 · 涉及 ${x.stock_cnt} 个股 · ${x.trades} 笔</div></div>
+        <div class="${pctCls(x.net)}">${sign(x.net)}</div></div>`).join("")
+      : `<div class="empty">无数据</div>`;
+    if (items.length) $("#hsBranch").querySelectorAll(".rank-item").forEach((el,i)=>{
+      el.classList.add("clickable");
+      el.onclick = ()=>openYouziDetail(items[i].branch, $("#hsEnd").value || $("#hsStart").value);
+    });
+  });
+
+  // 连板识别 + 净买额 vs 涨跌幅 散点
+  await safe(async () => {
+    const r = await api(`/api/analysis/limit-up?${qs()}`);
+    const items = r.items || [];
+    $("#hsLimitCount").textContent = "(" + items.length + ")";
+    $("#hsLimit").innerHTML = items.length ? items.map((x,i)=>`
+      <div class="rank-item"><div class="rank-no">${i+1}</div>
+        <div class="rank-main"><div class="rank-name">${x.stock_name} ${x.is_ztu?'<span class="tag">连板</span>':''}</div>
+          <div class="rank-sub">${x.stock_code} · ${x.is_ztu?('连板高度 '+x.streak+' 板'):('连续上榜 '+x.streak+' 天')} · 至 ${x.last_date}</div></div>
+        <div class="muted">${x.is_ztu?(x.streak+' 板'):(x.streak+' 天')}</div></div>`).join("")
+      : `<div class="empty">区间无连续上榜个股</div>`;
+    if (items.length) $("#hsLimit").querySelectorAll(".rank-item").forEach((el,i)=>{
+      el.classList.add("clickable");
+      el.onclick = ()=>openStockDetail(items[i].stock_code, items[i].last_date, items[i].stock_name);
+    });
+  });
+  await safe(async () => {
+    const r = await api(`/api/analysis/net-pct?${qs()}`);
+    renderScatter("hsChartScatter", r.items);
+  });
+}
+["#hsQuery","#hsStart","#hsEnd","#hsStock","#hsYouzi","#hsType","#hsSide"].forEach(s=>$(s).addEventListener("change",loadHistory));
+$("#hsQuery").onclick=loadHistory;
+
+/* ---------- 背景粒子 (Three.js) ---------- */
+// 整段包 try/catch：背景渲染失败（如 CDN/WebGL 异常）绝不应阻断下面的数据加载
+(function(){
+ try{
+  if (!window.THREE || !THREE.WebGLRenderer || matchMedia("(max-width: 640px)").matches) return; // 移动端降级
+  const c=$("#bg-canvas"); const renderer=new THREE.WebGLRenderer({canvas:c,alpha:true,antialias:true});
+  renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene(); const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100); cam.position.z=40;
+  const N=900, pos=new Float32Array(N*3), spd=new Float32Array(N);
+  for(let i=0;i<N;i++){ pos[i*3]=(Math.random()-0.5)*90; pos[i*3+1]=(Math.random()-0.5)*60; pos[i*3+2]=(Math.random()-0.5)*60; spd[i]=0.02+Math.random()*0.05; }
+  const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  // 用 canvas 生成的圆形纹理替换默认方块，避免满屏方形粒子
+  const cv=document.createElement("canvas"); cv.width=cv.height=64;
+  const cx=cv.getContext("2d");
+  cx.beginPath(); cx.arc(32,32,30,0,Math.PI*2); cx.closePath();
+  cx.fillStyle="#fff"; cx.fill();
+  const tex=new THREE.CanvasTexture(cv);   // 必须用 CanvasTexture 包装，否则纹理不上传、粒子不可见
+  const mat=new THREE.PointsMaterial({color:0x5b8cff,size:0.35,map:tex,transparent:true,opacity:0.8,alphaTest:0.5,depthWrite:false});
+  const pts=new THREE.Points(geo,mat); scene.add(pts);
+  function tick(){ const p=geo.attributes.position.array; for(let i=0;i<N;i++){ p[i*3+1]+=spd[i]; if(p[i*3+1]>30)p[i*3+1]=-30; } geo.attributes.position.needsUpdate=true; pts.rotation.y+=0.0008; renderer.render(scene,cam); requestAnimationFrame(tick); }
+  tick();
+  addEventListener("resize",()=>{ renderer.setSize(innerWidth,innerHeight); cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+ }catch(e){ console.warn("背景粒子初始化失败，已跳过：",e); }
+})();
+
+/* ---------- 初始化 ---------- */
+loadDates(); loadTypes();
+</script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

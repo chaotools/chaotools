@@ -1,0 +1,11 @@
+{
+  "id": "random-picker",
+  "name": "随机数 / 抽奖器",
+  "description": "随机数生成 + 名单抽奖，带抽取动画和历史记录",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["fun"],
+  "tags": ["随机", "抽奖", "抽签", "趣味"],
+  "features": ["随机数生成", "名单抽奖", "抽取动画", "历史记录"]
+}

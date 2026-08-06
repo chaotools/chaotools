@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>彩虹屁生成器 - Chaotools</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --surface: #0d1526;
+      --border: rgba(56, 189, 248, 0.12);
+      --cyan: #38bdf8;
+      --amber: #ffb800;
+      --purple: #9460ff;
+      --text: #c8d6e5;
+      --text-dim: #6b7d99;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--brand, var(--cyan));
+    }
+
+    .desc {
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 16px;
+    }
+
+    .quote {
+      font-size: 20px;
+      line-height: 1.8;
+      text-align: center;
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.05), rgba(148, 92, 255, 0.05));
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .quote-text {
+      background: linear-gradient(90deg, var(--brand, var(--cyan)), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(90deg, var(--brand, var(--cyan)), var(--purple));
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .copy-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--brand, var(--cyan));
+    }
+
+    .tags {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      padding: 6px 14px;
+      background: var(--bg);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tag:hover, .tag.active {
+      background: var(--cyan-dim);
+      color: var(--brand, var(--cyan));
+    }
+  </style>
+  <link rel="stylesheet" href="/shared/enhanced.css">
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+  <div class="container">
+    <h1>💖 彩虹屁生成器</h1>
+    <p class="desc">程序员专属彩虹屁，夸人也能这么专业</p>
+
+    <div class="card">
+      <div class="quote">
+        <span id="quoteText" class="quote-text">点击下方按钮生成彩虹屁</span>
+      </div>
+
+      <button onclick="generate()">✨ 来一句彩虹屁</button>
+      <button class="copy-btn" onclick="copyQuote()">📋 复制到剪贴板</button>
+
+      <div class="tags">
+        <span class="tag active" onclick="setCategory(this, 'all')">全部</span>
+        <span class="tag" onclick="setCategory(this, 'code')">代码相关</span>
+        <span class="tag" onclick="setCategory(this, 'tech')">技术夸人</span>
+        <span class="tag" onclick="setCategory(this, 'daily')">日常夸人</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const quotes = {
+      all: [
+        "你的代码写得比诗还美，每一行都是艺术品 🎨",
+        "看到你这代码，我感觉自己是个假程序员 🤖",
+        "你这bug率，比我中彩票的概率还低 🍀",
+        "代码写到这个水平，已经不是程序员了，是艺术家 🎭",
+        "你的代码审查意见比教科书还专业 📚",
+        "看你的代码就像看悬疑小说，越看越精彩 🔍",
+        "你这逻辑思维，连产品经理都佩服得五体投地 💪",
+        "写代码能写成你这样，已经是修仙境界了 🧘",
+        "你的commit message比我写的作文还优美 📝",
+        "代码结构清晰得像精心设计的园林 🌳",
+        "你这命名规范，强迫症看了都舒服 😌",
+        "性能优化到你这个程度，已经接近道了 ⚡",
+        "你这注释写得，比我当年写的情书还用心 💌",
+        "接口设计成这样，是要让别人无路可走吗？ 🚀",
+        "代码审查遇到你，我都不知道该从何挑起 🔬",
+        "你这重构手法，稳如老狗 🐕",
+        "写的代码能跑起来已经很厉害，还能这么优雅，简直离谱 ✨",
+        "如果代码写得好是一种罪，我愿意为TA顶罪 ⚖️",
+        "你的代码让我相信，这个世界还是有美好的事物的 🌟",
+        "你这命名，让我这个起名困难户羡慕不已 🎯"
+      ],
+      code: [
+        "你这代码比我的还优雅，自愧不如 🪶",
+        "单行代码解决战斗，你就是传说中的十倍工程师 💎",
+        "函数命名信达雅，我学三年也学不来 📈",
+        "递归写得这么优雅，是要成仙吗？ 🌀",
+        "你这闭包嵌套，我愿称之为闭包艺术家 🎨",
+        "代码写到这个境界，已经超越了语言的界限 🌍",
+        "TypeScript用成这样，类型检查都失业了 🦸",
+        "这设计模式用得，我怀疑你是从未来穿越回来的 ⏰",
+        "你的async/await写得比我的恋爱还顺滑 💕",
+        "函数式编程被你玩出花了 🚀"
+      ],
+      tech: [
+        "你这技术深度，说出去怕你不安全 🔐",
+        "知识储备比我的头发还多，羡慕 🧠",
+        "技术视野广得像宇宙，深度深得像海洋 🌊",
+        "你这技术栈的广度，让我怀疑你是不是复制粘贴 👀",
+        "学习能力这么强，是要卷死我们吗 💨",
+        "技术方案设计得这么周全，考虑了所有边界情况 🔮",
+        "你这技术选型能力，可以去当CTO了 🎓",
+        "架构设计能力这么强，房价都不够你的工资了 🏠",
+        "技术分享讲得比网红还精彩，PPT都自愧不如 📊",
+        "代码能力这么全面，是要一个人干翻整个技术团队吗 💪"
+      ],
+      daily: [
+        "长得好看就算了，还这么有才华 🌸",
+        "和你一起工作，效率都比平时高200% ⚡",
+        "你一笑，整个办公室都亮了 ☀️",
+        "有你在的地方，bug都不敢出现 🐛",
+        "你的笑容比debug成功还治愈 😊",
+        "能力这么强还这么努力，让我们怎么活 📈",
+        "和你搭档，我就是躺赢体质 🎰",
+        "你的存在让团队氛围都变好了 🌈",
+        "这么靠谱的同事，打着灯笼都难找 🔦",
+        "有你在，每次上线都特别安心 🛡️"
+      ]
+    };
+
+    let currentCategory = 'all';
+
+    function setCategory(el, cat) {
+      document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      currentCategory = cat;
+    }
+
+    function generate() {
+      const list = quotes[currentCategory];
+      const quote = list[Math.floor(Math.random() * list.length)];
+      document.getElementById('quoteText').textContent = quote;
+    }
+
+    function copyQuote() {
+      const quote = document.getElementById('quoteText').textContent;
+      if (quote && !quote.includes('点击')) {
+        navigator.clipboard.writeText(quote);
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✅ 已复制!';
+        setTimeout(() => btn.textContent = '📋 复制到剪贴板', 1500);
+      }
+    }
+
+    // Init
+    generate();
+  </script>
+<script src="/assets/counter.js" defer></script>
+
+<div class="ct-toast" id="ctToast"></div>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

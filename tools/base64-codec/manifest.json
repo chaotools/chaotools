@@ -1,0 +1,11 @@
+{
+  "id": "base64-codec",
+  "name": "Base64 编解码",
+  "description": "标准 Base64 / URL-safe 模式切换，文本与编码互转",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "author": "Chaotools",
+  "categories": ["dev", "convert"],
+  "tags": ["Base64", "编码", "解码", "URL-safe"],
+  "features": ["Base64 编码", "Base64 解码", "URL-safe 模式"]
+}
