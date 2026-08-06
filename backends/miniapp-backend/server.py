@@ -168,7 +168,7 @@ async def error_report(req: Request):
 import time, threading, urllib.request, urllib.error
 
 # ============ 微信内容安全（msg_sec_check / img_sec_check）============
-_WX_APPID = "wx45a8065bcbc7be47"
+_WX_APPID = os.getenv("WX_APPID", "")
 _WX_APPSECRET = os.getenv("WX_APPSECRET", "")
 _SEC_TOKEN = {"token": None, "expire": 0.0}
 _SEC_LOCK = threading.Lock()
