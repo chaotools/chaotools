@@ -212,7 +212,7 @@
         "fun"
       ],
       "tech": {
-        "entry": "/emoji-search"
+        "entry": "/emoji-search/"
       },
       "tags": [
         "Emoji",
@@ -940,7 +940,7 @@
         "dev"
       ],
       "tech": {
-        "entry": "/order-distributor"
+        "entry": "/order-distributor/"
       },
       "tags": [
         "分配",
@@ -1044,7 +1044,7 @@
       "name": "龙虎榜游资分析",
       "description": "每日 A 股龙虎榜席位与游资动向分析：个股频次、游资汇总、营业部协同、资金净流入",
       "categories": [
-        "finance"
+        "dev"
       ],
       "tech": {
         "entry": "/lhb-analyzer/"

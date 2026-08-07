@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta name="description" content="Chaotools 在线工具箱 - 免费在线工具">
+  <link rel="canonical" href="https://chaotools.tech/jining-map.html">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>济宁楼盘地图 - 2026年7月</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  body { margin:0; padding:0; font-family: "Microsoft YaHei", sans-serif; }
+  #map { width:100vw; height:100vh; }
+  .legend { 
+    background: white; padding: 10px 14px; border-radius: 8px; 
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15); font-size: 13px; line-height: 1.8;
+    position: absolute; bottom: 30px; right: 10px; z-index: 1000;
+  }
+  .legend b { display:block; margin-bottom:4px; }
+  .title-bar {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.95); padding: 10px 24px; border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15); z-index: 1000;
+    font-size: 16px; font-weight: bold; text-align: center;
+  }
+  .popup-price { color: #e74c3c; font-weight: bold; font-size: 14px; }
+  .popup-tag { display:inline-block; background:#27ae60; color:white; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px; }
+  .popup-tag.over { background:#e67e22; }
+</style>
+</head>
+<body>
+<!-- chaotools-unibar:start -->
+<div class="ct-unibar">
+  <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>
+  <a class="ct-unibar__back" href="/">← 返回首页</a>
+</div>
+<style>
+.ct-unibar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:rgba(10,14,23,.94);color:#e2e8f0;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}
+.ct-unibar a{color:#e2e8f0;text-decoration:none;opacity:.88}
+.ct-unibar a:hover{opacity:1;color:#38bdf8}
+.ct-unibar__back{margin-left:auto}
+</style>
+<!-- chaotools-unibar:end -->
+
+<div class="title-bar">🏠 济宁楼盘地图 · 2026年7月 · 均价约6,100元/㎡</div>
+<div id="map"></div>
+<div class="legend">
+  <b>图例</b>
+  🟢 预算内 (62-70万) 三室<br>
+  🟠 略超预算 (70-80万) 三室<br>
+  🔵 其他楼盘<br>
+  ⚪ 周边区县<br>
+  <hr style="margin:4px 0">
+  点击标记查看详情
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script>
+const map = L.map('map').setView([35.41, 116.60], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+// 各区域坐标（近似）
+const buildings = [
+  // === 任城区 ===
+  { name:'翰香名城', district:'任城', lat:35.415, lng:116.570, price:9723, area:'144㎡四室', total:'140万', type:'other' },
+  { name:'华城圣湖世家', district:'任城', lat:35.402, lng:116.605, price:8871, area:'186㎡四室', total:'165万', type:'other' },
+  { name:'贵熙园', district:'任城', lat:35.420, lng:116.595, price:7699, area:'114㎡三室', total:'88万', type:'other' },
+  { name:'龙翔御苑', district:'任城', lat:35.428, lng:116.610, price:5703, area:'91㎡两室', total:'52万', type:'other' },
+  { name:'时星御德新城', district:'任城', lat:35.418, lng:116.575, price:5427, area:'85㎡两室', total:'46万', type:'other' },
+  { name:'林屯小区', district:'任城', lat:35.440, lng:116.620, price:3182, area:'110㎡三室', total:'35万', type:'budget' },
+  { name:'黎寨社区', district:'任城', lat:35.435, lng:116.600, price:3460, area:'113㎡四室', total:'39万', type:'other' },
+  { name:'仙北小区', district:'任城', lat:35.425, lng:116.615, price:5793, area:'62㎡两室', total:'36万', type:'other' },
+  
+  // === 高新区 ===
+  { name:'海亮公馆', district:'高新区', lat:35.420, lng:116.650, price:6500, area:'120㎡三室', total:'78万', type:'near_budget' },
+  { name:'创业公寓', district:'高新区', lat:35.418, lng:116.665, price:7913, area:'215㎡四室', total:'170万', type:'other' },
+  { name:'绿色家园', district:'高新区', lat:35.415, lng:116.670, price:4754, area:'122㎡三室', total:'58万', type:'budget' },
+  { name:'崇文名都', district:'高新区', lat:35.408, lng:116.660, price:4107, area:'112㎡三室', total:'46万', type:'budget' },
+  
+  // === 太白湖新区 ===
+  { name:'中南珑悦', district:'太白湖', lat:35.365, lng:116.600, price:10168, area:'138㎡四室', total:'140万', type:'other' },
+  { name:'水运雅居', district:'太白湖', lat:35.370, lng:116.590, price:7667, area:'102㎡两室', total:'78万', type:'other' },
+  { name:'碧桂园翡翠城', district:'太白湖', lat:35.362, lng:116.610, price:6540, area:'145㎡四室', total:'95万', type:'other' },
+  { name:'金城锦绣花园', district:'太白湖', lat:35.368, lng:116.605, price:5914, area:'93㎡三室', total:'55万', type:'budget' },
+  
+  // === 市中区 ===
+  { name:'南池御都', district:'市中', lat:35.398, lng:116.575, price:11171, area:'94㎡三室', total:'105万', type:'other' },
+  { name:'鲁兴欣苑', district:'市中', lat:35.405, lng:116.585, price:6638, area:'92㎡两室', total:'61万', type:'other' },
+  { name:'九巨龙红玺台', district:'市中', lat:35.400, lng:116.600, price:5871, area:'112㎡三室', total:'66万', type:'budget' },
+  { name:'琵琶山小区', district:'市中', lat:35.410, lng:116.598, price:4909, area:'84㎡两室', total:'41万', type:'other' },
+  { name:'越秀园小区', district:'市中', lat:35.395, lng:116.580, price:5892, area:'48㎡两室', total:'28万', type:'other' },
+  
+  // === 万达商圈 ===
+  { name:'国投·四季朗悦', district:'万达', lat:35.408, lng:116.595, price:7500, area:'93-422㎡', total:'—', type:'other' },
+  
+  // === 兖州 ===
+  { name:'兴隆北区', district:'兖州', lat:35.555, lng:116.785, price:2985, area:'67㎡两室', total:'20万', type:'outlying' },
+  { name:'新兴小区', district:'兖州', lat:35.550, lng:116.780, price:3663, area:'90㎡两室', total:'33万', type:'outlying' },
+  
+  // === 邹城 ===
+  { name:'邹城碧桂园', district:'邹城', lat:35.405, lng:117.005, price:6563, area:'96㎡三室', total:'63万', type:'outlying' },
+  { name:'泰和领秀城', district:'邹城', lat:35.400, lng:117.010, price:6304, area:'141㎡三室', total:'89万', type:'outlying' },
+  { name:'天泰北区', district:'邹城', lat:35.395, lng:117.000, price:3064, area:'114㎡三室', total:'35万', type:'outlying' },
+  
+  // === 曲阜 ===
+  { name:'犁铧春秋', district:'曲阜', lat:35.585, lng:116.990, price:6014, area:'91㎡三室', total:'55万', type:'outlying' },
+  
+  // === 已看现房（记忆数据） ===
+  { name:'城投瑞马·天悦', district:'—', lat:35.410, lng:116.610, price:6500, area:'~100㎡三室', total:'~65万', type:'near_budget', note:'已看✅现房' },
+  { name:'济宁尚龙星耀', district:'—', lat:35.415, lng:116.620, price:6000, area:'~100㎡三室', total:'~60万', type:'budget', note:'已看✅现房' },
+];
+
+// 添加标记
+const budgetGroup = L.layerGroup();
+const nearGroup = L.layerGroup();
+const otherGroup = L.layerGroup();
+const outlyingGroup = L.layerGroup();
+
+buildings.forEach(b => {
+  const isBudget = b.type === 'budget';
+  const isNear = b.type === 'near_budget';
+  const isOutlying = b.type === 'outlying';
+  
+  let color, markerSize;
+  if (isBudget) { color = '#27ae60'; markerSize = 'large'; }
+  else if (isNear) { color = '#e67e22'; markerSize = 'medium'; }
+  else if (isOutlying) { color = '#95a5a6'; markerSize = 'small'; }
+  else { color = '#2980b9'; markerSize = 'medium'; }
+  
+  const icon = L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      background:${color}; color:white; border-radius:50%; 
+      width:${isBudget?'32':'26'}px; height:${isBudget?'32':'26'}px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:${isBudget?'13':'11'}px; font-weight:bold;
+      border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    ">${b.price/1000|0}k</div>`,
+    iconSize: [isBudget?32:26, isBudget?32:26],
+    iconAnchor: [isBudget?16:13, isBudget?16:13]
+  });
+  
+  const popup = `
+    <b>${b.name}</b><br>
+    <span style="color:#666">${b.district}</span><br>
+    <span class="popup-price">${b.price.toLocaleString()}元/㎡</span><br>
+    ${b.area} · ${b.total}<br>
+    ${b.note ? `<span class="popup-tag">${b.note}</span>` : ''}
+    ${isBudget ? '<span class="popup-tag">✅预算内</span>' : ''}
+    ${isNear ? '<span class="popup-tag over">⚠略超预算</span>' : ''}
+  `;
+  
+  const marker = L.marker([b.lat, b.lng], {icon}).bindPopup(popup);
+  
+  if (isBudget) budgetGroup.addLayer(marker);
+  else if (isNear) nearGroup.addLayer(marker);
+  else if (isOutlying) outlyingGroup.addLayer(marker);
+  else otherGroup.addLayer(marker);
+});
+
+// 城区图层默认显示
+budgetGroup.addTo(map);
+nearGroup.addTo(map);
+otherGroup.addTo(map);
+
+// 图层控制
+L.control.layers(null, {
+  '🟢 预算内三室 (62-70万)': budgetGroup,
+  '🟠 略超预算 (70-80万)': nearGroup,
+  '🔵 其他楼盘': otherGroup,
+  '⚪ 周边区县': outlyingGroup
+}, {collapsed: false}).addTo(map);
+
+// 区域标签
+const districts = [
+  { name:'任城区', lat:35.415, lng:116.585 },
+  { name:'高新区', lat:35.418, lng:116.660 },
+  { name:'太白湖新区', lat:35.362, lng:116.600 },
+  { name:'市中区', lat:35.400, lng:116.590 },
+  { name:'万达', lat:35.408, lng:116.595 },
+];
+
+districts.forEach(d => {
+  L.circleMarker([d.lat, d.lng], {
+    radius: 0, opacity: 0
+  }).bindTooltip(d.name, {
+    permanent: true, direction: 'center',
+    className: 'district-label',
+    offset: [0, 0]
+  }).addTo(map);
+});
+
+// 标注已看楼盘
+buildings.filter(b=>b.note).forEach(b=>{
+  L.circle([b.lat, b.lng], {radius:600, color:'#e74c3c', weight:2, fill:false, dashArray:'5,5'}).addTo(map);
+});
+
+map.fitBounds([[35.355, 116.560], [35.445, 116.680]]);
+</script>
+<!-- chaotools-unifooter:start -->
+<footer class="ct-unifooter">
+  © 2026 Chaotools · 你的工具，你做主 ·
+  <a href="/explore">探索工具</a> ·
+  <a href="/message-board/">留言板</a>
+</footer>
+<style>
+.ct-unifooter{margin-top:48px;padding:16px 12px;text-align:center;font-size:12px;color:#94a3b8;background:rgba(10,14,23,.94);border-top:1px solid rgba(255,255,255,.08);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif}
+.ct-unifooter a{color:#94a3b8;text-decoration:none;margin:0 4px}
+.ct-unifooter a:hover{color:#38bdf8}
+</style>
+<!-- chaotools-unifooter:end -->
+</body>
+</html>

@@ -6,6 +6,7 @@ const app = express();
 const PORT = 3456;
 const DATA_FILE = path.join(__dirname, 'messages.json');
 
+app.disable('x-powered-by');
 app.set('trust proxy', true);
 
 // Rate limiting: max 5 requests per IP per 10 seconds
