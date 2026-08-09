@@ -3,12 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTools } from '@/hooks/useTools';
 import { ToolCard } from '@/components/ToolCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-
-interface PopularItem {
-  id: string;
-  total: number;
-  today: number;
-}
+import { api, type PopularTool } from '@/api/client';
 
 function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: number }) {
   const [n, setN] = useState(0);
@@ -29,20 +24,15 @@ function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: 
 export function HomePage() {
   const navigate = useNavigate();
   const { tools, loading, categories, getToolsByCategory } = useTools();
-  const [popularItems, setPopularItems] = useState<PopularItem[]>([]);
+  const [popularItems, setPopularItems] = useState<PopularTool[]>([]);
 
   const devTools = getToolsByCategory('dev').slice(0, 9);
   const aiTools = getToolsByCategory('ai');
   const funTools = getToolsByCategory('fun');
 
   useEffect(() => {
-    fetch('/api/message-board/stats/popular?n=6')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success && data.data.length > 0) {
-          setPopularItems(data.data);
-        }
-      })
+    api.getPopularTools(6)
+      .then(setPopularItems)
       .catch(() => {});
   }, []);
 

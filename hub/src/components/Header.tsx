@@ -1,18 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/context/AuthContext';
 
 const NAV_ITEMS = [
-  { path: '/', label: '首页', icon: '🏠' },
-  { path: '/explore', label: '探索', icon: '🔍' },
-  { path: '/my-tools', label: '我的工具', icon: '⭐' },
+  { path: '/', label: '首页', no: '01' },
+  { path: '/explore', label: '探索', no: '02' },
+  { path: '/my-tools', label: '我的工具', no: '03' },
 ] as const;
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,6 +43,11 @@ export function Header() {
     setMobileMenuOpen(false);
   }, []);
 
+  const handleLogout = useCallback(() => {
+    logout();
+    navigate('/');
+  }, [logout, navigate]);
+
   return (
     <header
       className={`header ${scrolled ? 'header--scrolled' : ''}`}
@@ -63,7 +71,7 @@ export function Header() {
               }`}
               onClick={handleNavClick}
             >
-              <span className="header__nav-icon">{item.icon}</span>
+              <span className="header__nav-no">{item.no}</span>
               <span>{item.label}</span>
             </Link>
           ))}
@@ -71,6 +79,29 @@ export function Header() {
 
         {/* Actions */}
         <div className="header__actions">
+          {/* Auth */}
+          {user ? (
+            <div className="header__user">
+              <span className="header__user-name" title={user.email}>
+                {user.name}
+              </span>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={handleLogout}
+                title="退出登录"
+              >
+                登出
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="btn btn-ghost btn-sm header__login-btn"
+            >
+              登录
+            </Link>
+          )}
+
           {/* Theme Toggle */}
           <button
             className="btn btn-icon btn-ghost header__theme-btn"
@@ -117,7 +148,7 @@ export function Header() {
             }`}
             onClick={handleNavClick}
           >
-            <span className="header__nav-icon">{item.icon}</span>
+            <span className="header__nav-no">{item.no}</span>
             <span>{item.label}</span>
           </Link>
         ))}
@@ -215,6 +246,28 @@ export function Header() {
           display: flex;
           align-items: center;
           gap: var(--space-2);
+        }
+
+        .header__user {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+        }
+
+        .header__user-name {
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+          color: var(--color-text);
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+          .header__user-name {
+            display: none;
+          }
         }
 
         .header__theme-btn {

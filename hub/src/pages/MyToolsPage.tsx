@@ -1,33 +1,30 @@
 import { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTools } from '@/hooks/useTools';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useFavorites } from '@/hooks/useFavorites';
 import { ToolGrid } from '@/components/ToolGrid';
-import type { SavedTool } from '@chaotools/types';
 
 export function MyToolsPage() {
   const navigate = useNavigate();
   const { tools, loading, error } = useTools();
-  const [savedTools, setSavedTools] = useLocalStorage<SavedTool[]>('chaotools-saved', []);
-
-  const savedIds = useMemo(() => savedTools.map((s) => s.toolId), [savedTools]);
+  const { savedIds, toggleSave, clearAll } = useFavorites();
 
   const myTools = useMemo(() => {
-    return savedTools
-      .map((s) => tools.find((t) => t.id === s.toolId))
+    return savedIds
+      .map((id) => tools.find((t) => t.id === id))
       .filter((t): t is NonNullable<typeof t> => t !== undefined);
-  }, [tools, savedTools]);
+  }, [tools, savedIds]);
 
   const handleToggleSave = useCallback(
     (toolId: string) => {
-      setSavedTools((prev) => prev.filter((s) => s.toolId !== toolId));
+      void toggleSave(toolId);
     },
-    [setSavedTools]
+    [toggleSave]
   );
 
   const handleClearAll = useCallback(() => {
-    setSavedTools([]);
-  }, [setSavedTools]);
+    void clearAll();
+  }, [clearAll]);
 
   return (
     <div className="my-tools-page">

@@ -1,36 +1,38 @@
 import { useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTools } from '@/hooks/useTools';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useFavorites } from '@/hooks/useFavorites';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import type { SavedTool } from '@chaotools/types';
 
 export function ToolDetailPage() {
   const { toolId } = useParams<{ toolId: string }>();
   const navigate = useNavigate();
-  const { getToolById, loading, error } = useTools();
-  const [savedTools, setSavedTools] = useLocalStorage<SavedTool[]>('chaotools-saved', []);
+  const { getToolById, loading, error, categories } = useTools();
+  const { savedIds, toggleSave } = useFavorites();
 
   const tool = useMemo(() => {
     if (!toolId) return undefined;
     return getToolById(toolId);
   }, [toolId, getToolById]);
 
+  // 分类显示名由 manifest 数据驱动，未知分类回退显示原始 id
+  const categoryName = useCallback(
+    (catId: string): string => {
+      const cat = categories.find((c) => c.id === catId);
+      return cat ? `${cat.icon} ${cat.name}` : catId;
+    },
+    [categories]
+  );
+
   const isSaved = useMemo(
-    () => savedTools.some((s) => s.toolId === toolId),
-    [savedTools, toolId]
+    () => savedIds.includes(toolId ?? ''),
+    [savedIds, toolId]
   );
 
   const handleToggleSave = useCallback(() => {
     if (!toolId) return;
-    setSavedTools((prev) => {
-      const exists = prev.find((s) => s.toolId === toolId);
-      if (exists) {
-        return prev.filter((s) => s.toolId !== toolId);
-      }
-      return [...prev, { toolId, savedAt: Date.now() }];
-    });
-  }, [toolId, setSavedTools]);
+    void toggleSave(toolId);
+  }, [toolId, toggleSave]);
 
   const handleOpen = useCallback(() => {
     if (tool?.tech.entry) {
@@ -138,7 +140,7 @@ export function ToolDetailPage() {
                     to={`/explore?category=${catId}`}
                     className={`badge tool-detail__cat tool-detail__cat--${catId}`}
                   >
-                    {catId === 'dev' ? '💻 开发工具' : catId === 'ai' ? '🤖 AI 大模型' : '🎮 趣味工具'}
+                    {categoryName(catId)}
                   </Link>
                 ))}
               </div>

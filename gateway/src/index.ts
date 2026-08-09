@@ -14,7 +14,7 @@ import { registryRouter } from './routes/registry';
 import { teamsRouter } from './routes/teams';
 import { analyticsRouter } from './routes/analytics';
 import { usersRouter } from './routes/users';
-import { billingRouter } from './routes/billing';
+import { billingRouter, billingWebhook } from './routes/billing';
 
 // 服务
 import { initDatabase } from './services/db';
@@ -38,7 +38,7 @@ const app = new Hono<{ Variables: { user: UserContext } }>();
 // 全局中间件
 app.use('*', logger());
 app.use('*', cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'https://chaotools.tech',
   credentials: true,
 }));
 
@@ -48,6 +48,8 @@ app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOStri
 // 公开路由
 app.route('/auth', authRouter);
 app.route('/registry', registryRouter);
+// 支付回调：公开路由（支付网关无 JWT），用共享密钥签名校验
+app.route('/billing', billingWebhook);
 
 // 需认证的路由
 app.use('/tools/*', authMiddleware);
@@ -68,7 +70,7 @@ app.onError((err, c) => {
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message: err.message || 'Internal server error',
+      message: 'Internal server error',
     },
   }, 500);
 });
@@ -98,6 +100,7 @@ console.log(`
 serve({
   fetch: app.fetch,
   port,
+  hostname: '127.0.0.1',
 });
 
 export default app;

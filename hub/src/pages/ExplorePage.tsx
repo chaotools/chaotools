@@ -2,18 +2,17 @@ import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTools } from '@/hooks/useTools';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useFavorites } from '@/hooks/useFavorites';
 import { ToolGrid } from '@/components/ToolGrid';
 import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
-import type { SavedTool } from '@chaotools/types';
 
 export function ExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { tools, loading, error, categories } = useTools();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const [savedTools, setSavedTools] = useLocalStorage<SavedTool[]>('chaotools-saved', []);
+  const { savedIds, toggleSave } = useFavorites();
 
   const activeCategory = searchParams.get('category');
 
@@ -23,8 +22,6 @@ export function ExplorePage() {
     },
     [setSearchParams]
   );
-
-  const savedIds = useMemo(() => savedTools.map((s) => s.toolId), [savedTools]);
 
   const filteredTools = useMemo(() => {
     let result = activeCategory
@@ -46,15 +43,9 @@ export function ExplorePage() {
 
   const handleToggleSave = useCallback(
     (toolId: string) => {
-      setSavedTools((prev) => {
-        const exists = prev.find((s) => s.toolId === toolId);
-        if (exists) {
-          return prev.filter((s) => s.toolId !== toolId);
-        }
-        return [...prev, { toolId, savedAt: Date.now() }];
-      });
+      void toggleSave(toolId);
     },
-    [setSavedTools]
+    [toggleSave]
   );
 
   const activeCat = categories.find((c) => c.id === activeCategory);

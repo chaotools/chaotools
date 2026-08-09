@@ -11,6 +11,7 @@ import {
   getTeamMembers,
   addTeamMember,
   removeTeamMember,
+  isTeamOwner,
 } from '../services/team';
 import { isOwner } from '../services/auth';
 import type { UserContext } from '../types';
@@ -89,8 +90,8 @@ teams.post('/:id/members', zValidator('json', z.object({
   const user = c.get('user') as UserContext;
   const body = c.req.valid('json');
 
-  // 只有 owner 可以添加成员
-  if (!isOwner(user.id)) {
+  // 只有团队 owner 或平台 owner 可以添加成员
+  if (!isOwner(user.id) && !isTeamOwner(id, user.id)) {
     return c.json({
       success: false,
       error: { code: 'FORBIDDEN', message: 'Only owner can add members' },
@@ -110,8 +111,8 @@ teams.delete('/:id/members/:userId', async (c) => {
   const { id, userId } = c.req.param();
   const user = c.get('user') as UserContext;
 
-  // 只有 owner 可以移除成员
-  if (!isOwner(user.id)) {
+  // 只有团队 owner 或平台 owner 可以移除成员
+  if (!isOwner(user.id) && !isTeamOwner(id, user.id)) {
     return c.json({
       success: false,
       error: { code: 'FORBIDDEN', message: 'Only owner can remove members' },

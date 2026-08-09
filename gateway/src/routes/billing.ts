@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { createHmac, timingSafeEqual } from 'crypto';
 import {
   getPlans,
   getUserSubscription,
@@ -214,13 +215,39 @@ billing.get('/payments', async (c) => {
   });
 });
 
-// 支付回调 (支付网关调用)
-billing.post('/webhook/payment', zValidator('json', z.object({
+// ============ 支付回调（公开，签名校验） ============
+
+// 支付回调 (支付网关调用) —— 由 index.ts 以公开路由挂载，用共享密钥签名校验
+export const billingWebhook = new Hono();
+
+billingWebhook.post('/webhook/payment', zValidator('json', z.object({
   paymentId: z.string(),
   status: z.enum(['completed', 'failed', 'refunded']),
   externalPaymentId: z.string().optional(),
+  signature: z.string().min(1),
 })), async (c) => {
   const body = c.req.valid('json');
+
+  // 校验签名，防止伪造支付结果
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) {
+    return c.json({
+      success: false,
+      error: { code: 'NOT_CONFIGURED', message: 'Webhook secret not configured' },
+    }, 503);
+  }
+
+  const expected = createHmac('sha256', secret)
+    .update(`${body.paymentId}:${body.status}:${body.externalPaymentId ?? ''}`)
+    .digest('hex');
+  const provided = Buffer.from(body.signature, 'utf8');
+  const expectedBuf = Buffer.from(expected, 'utf8');
+  if (provided.length !== expectedBuf.length || !timingSafeEqual(provided, expectedBuf)) {
+    return c.json({
+      success: false,
+      error: { code: 'INVALID_SIGNATURE', message: 'Invalid signature' },
+    }, 401);
+  }
 
   const success = updatePaymentStatus(
     body.paymentId,

@@ -86,6 +86,23 @@ export function initDatabase() {
     )
   `);
 
+  // 刷新令牌表（httpOnly Cookie 长效登录用，服务端可撤销/轮换）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      revoked_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+  `);
+
   // 索引
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_tools_owner ON tools(owner_id);

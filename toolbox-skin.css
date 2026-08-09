@@ -1,0 +1,232 @@
+/* ============================================================
+   Chaotools · 工具柜皮肤（独立工具页通用）
+   覆盖各工具页的颜色/面板/按钮/输入框等视觉层，不动功能与布局。
+   ============================================================ */
+
+/* ---------- 共用变量重定义 ---------- */
+:root {
+  --bg: #e8e1d2;
+  --surface: #b8a88d;
+  --card: #b8a88d;
+  --border: #4e4233;
+  --border-hover: #a3331f;
+  --border-subtle: rgba(78, 66, 51, 0.35);
+  --text: #2a251f;
+  --text2: #3a332a;
+  --text-dim: #6f6554;
+  --text-muted: #8a7d68;
+  --muted: #8a7d68;
+  --cyan: #a3331f;
+  --cyan-dim: rgba(163, 51, 31, 0.12);
+  --brand: #a3331f;
+  --brand-dim: rgba(163, 51, 31, 0.10);
+  --primary: #a3331f;
+  --red: #a3331f;
+  --red-dim: rgba(163, 51, 31, 0.12);
+  --danger: #b23a2f;
+  --yellow: #d9a441;
+  --green: #4b7b3c;
+  --green-dim: rgba(75, 123, 60, 0.12);
+  --success: #4b7b3c;
+  --orange: #c07a1f;
+  --purple: #3f5f8f;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --font-sans: "Noto Sans SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+}
+
+/* ---------- 基底 ---------- */
+html, body {
+  background: #e8e1d2 !important;
+  color: #2a251f !important;
+}
+body {
+  font-family: var(--font-sans);
+}
+h1, h2, h3, h4, h5, h6 {
+  color: #2a251f !important;
+}
+a {
+  color: #a3331f !important;
+}
+a:hover {
+  color: #7a2c1b !important;
+}
+
+/* ---------- 顶栏 / 页眉 ---------- */
+header,
+.header,
+[class*="header-bar"],
+.topbar,
+.top-bar {
+  background: #544736 !important;
+  color: #f4ecdc !important;
+  border-bottom: 3px solid #2a251f !important;
+}
+header a,
+.header a,
+.topbar a {
+  color: #e6dcc8 !important;
+}
+header a:hover,
+.header a:hover {
+  color: #f2c300 !important;
+}
+
+/* ---------- 页脚 ---------- */
+footer,
+.footer {
+  background: #544736 !important;
+  color: #cfc4ac !important;
+  border-top: 3px solid #2a251f !important;
+}
+footer a,
+.footer a {
+  color: #e6dcc8 !important;
+}
+footer a:hover,
+.footer a:hover {
+  color: #f2c300 !important;
+}
+
+/* ---------- 面板 / 卡片：抽屉面板 ---------- */
+.panel,
+.card,
+.box,
+.board,
+.section-card,
+.result-area,
+.output-area,
+.preview,
+.editor,
+.drop-zone,
+[class*="panel"],
+[class*="card-"] {
+  background: #b8a88d !important;
+  color: #2a251f !important;
+  border: 2px solid #4e4233 !important;
+  border-radius: 4px !important;
+  box-shadow: 3px 3px 0 rgba(78, 66, 51, 0.25) !important;
+}
+.panel-header,
+[class*="panel-header"],
+.card-header,
+.card-title,
+.box-title {
+  color: #2a251f !important;
+  border-bottom: 2px solid #4e4233 !important;
+  font-weight: 700;
+}
+
+/* ---------- 按钮：拉手样式 ---------- */
+button,
+.btn,
+[class*="btn"] {
+  background: #f2ead8 !important;
+  color: #2a251f !important;
+  border: 2px solid #4e4233 !important;
+  border-radius: 3px !important;
+  box-shadow: 2px 2px 0 rgba(78, 66, 51, 0.3) !important;
+  font-weight: 600 !important;
+}
+button:hover:not(:disabled),
+.btn:hover {
+  background: #fff3da !important;
+  color: #2a251f !important;
+}
+button:active:not(:disabled),
+.btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 rgba(78, 66, 51, 0.3) !important;
+}
+button:disabled,
+.btn:disabled {
+  opacity: 0.55;
+}
+.btn-primary,
+.btn-danger,
+.btn-warn,
+.btn-success,
+.primary,
+.danger {
+  background: #a3331f !important;
+  color: #fff6e8 !important;
+  border-color: #4e4233 !important;
+}
+.btn-primary:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
+  background: #c04a2c !important;
+  color: #fff !important;
+}
+
+/* ---------- 输入控件：标签槽 ---------- */
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="date"],
+textarea,
+select {
+  background: #f2ead8 !important;
+  color: #2a251f !important;
+  border: 2px solid #4e4233 !important;
+  border-radius: 3px !important;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: #a3331f !important;
+  box-shadow: 0 0 0 2px rgba(163, 51, 31, 0.15) !important;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #8a7d68 !important;
+}
+
+/* ---------- 表格 ---------- */
+table {
+  border-collapse: collapse;
+}
+th {
+  background: rgba(78, 66, 51, 0.14) !important;
+  color: #2a251f !important;
+}
+th, td {
+  border-bottom: 1px solid rgba(78, 66, 51, 0.3) !important;
+}
+
+/* ---------- 标签 / 徽章 ---------- */
+.tag,
+.badge,
+.chip,
+.label,
+[class*="tag"],
+[class*="badge"],
+[class*="chip"] {
+  background: #f2ead8 !important;
+  color: #2a251f !important;
+  border: 1px solid #4e4233 !important;
+  border-radius: 2px !important;
+}
+
+/* ---------- 其它细节 ---------- */
+.toolbar {
+  border-bottom: 2px solid #4e4233;
+}
+code,
+pre {
+  background: rgba(78, 66, 51, 0.08) !important;
+  border: 1px solid rgba(78, 66, 51, 0.25) !important;
+  border-radius: 3px !important;
+}
+.toast,
+.hint,
+.tip {
+  color: #6f6554 !important;
+}

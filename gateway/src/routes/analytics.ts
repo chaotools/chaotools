@@ -20,6 +20,7 @@ const analytics = new Hono();
 
 // 记录页面访问 (公开)
 analytics.post('/page-view', optionalAuthMiddleware, async (c) => {
+  const user = c.get('user') as UserContext | undefined;
   const body = await c.req.json();
 
   if (body.toolId !== undefined && (typeof body.toolId !== 'string' || body.toolId.length > 100)) {
@@ -34,10 +35,14 @@ analytics.post('/page-view', optionalAuthMiddleware, async (c) => {
   if (body.userAgent !== undefined && (typeof body.userAgent !== 'string' || body.userAgent.length > 500)) {
     return c.json({ success: false, error: { code: 'INVALID_PARAMS', message: 'Invalid userAgent' } }, 400);
   }
+  if (body.userId !== undefined && (typeof body.userId !== 'string' || body.userId.length > 100)) {
+    return c.json({ success: false, error: { code: 'INVALID_PARAMS', message: 'Invalid userId' } }, 400);
+  }
 
+  // 已登录用户以服务端解析的 userId 为准，防止伪造任意用户 ID 污染统计
   recordPageView({
     toolId: body.toolId,
-    userId: body.userId,
+    userId: user?.id ?? body.userId,
     sessionId: body.sessionId,
     referrer: body.referrer,
     userAgent: body.userAgent,

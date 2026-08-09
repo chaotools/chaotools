@@ -5,7 +5,7 @@
 import { db } from './db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes, createHash } from 'crypto';
 import type { UserContext, JwtPayload, LoginRequest, RegisterRequest } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -15,7 +15,10 @@ if (!JWT_SECRET) {
     'Generate one: openssl rand -hex 64'
   );
 }
-const JWT_EXPIRES_IN = '7d';
+// 短时效访问令牌：即使被 XSS 窃取，15 分钟内即失效
+const JWT_EXPIRES_IN = '15m';
+// 长效刷新令牌：仅存于 httpOnly Cookie，服务端可撤销
+export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 天
 
 export interface AuthResult {
   success: boolean;
@@ -94,13 +97,65 @@ export function verifyToken(token: string): JwtPayload | null {
   }
 }
 
-// 签发 token
+// 签发访问令牌
 function signToken(user: UserContext): string {
   return jwt.sign(
     { sub: user.id, name: user.name, email: user.email, role: user.role },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
+}
+
+// 签发访问令牌（供刷新路由使用）
+export function signAccessToken(user: UserContext): string {
+  return signToken(user);
+}
+
+// ---------- 刷新令牌 ----------
+
+function hashToken(raw: string): string {
+  return createHash('sha256').update(raw).digest('hex');
+}
+
+function cleanupExpiredRefreshTokens(): void {
+  db.prepare("DELETE FROM refresh_tokens WHERE expires_at < datetime('now')").run();
+}
+
+export function createRefreshToken(userId: string): string {
+  const raw = randomBytes(48).toString('hex');
+  const id = randomUUID();
+  const expiresAt = new Date(Date.now() + REFRESH_TTL_MS).toISOString();
+  db.prepare(`
+    INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
+    VALUES (?, ?, ?, ?)
+  `).run(id, userId, hashToken(raw), expiresAt);
+  cleanupExpiredRefreshTokens();
+  return raw;
+}
+
+// 校验并轮换刷新令牌；返回新令牌与其所属用户
+export function rotateRefreshToken(raw: string): { raw: string; userId: string } | null {
+  const row = db.prepare('SELECT * FROM refresh_tokens WHERE token_hash = ?')
+    .get(hashToken(raw)) as any;
+  if (!row || row.revoked_at) return null;
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+
+  // 轮换：撤销旧令牌，签发新令牌，缩短被窃取后的可用窗口
+  db.prepare('UPDATE refresh_tokens SET revoked_at = datetime(\'now\') WHERE id = ?').run(row.id);
+  const newRaw = randomBytes(48).toString('hex');
+  const newId = randomUUID();
+  const expiresAt = new Date(Date.now() + REFRESH_TTL_MS).toISOString();
+  db.prepare(`
+    INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
+    VALUES (?, ?, ?, ?)
+  `).run(newId, row.user_id, hashToken(newRaw), expiresAt);
+
+  return { raw: newRaw, userId: row.user_id };
+}
+
+export function revokeRefreshToken(raw: string): void {
+  db.prepare('UPDATE refresh_tokens SET revoked_at = datetime(\'now\') WHERE token_hash = ?')
+    .run(hashToken(raw));
 }
 
 // 获取用户

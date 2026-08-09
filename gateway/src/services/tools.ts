@@ -179,7 +179,14 @@ export function updateTool(id: string, data: UpdateToolRequest, user: UserContex
   if (data.slug) { updates.push('slug = ?'); values.push(data.slug); }
   if (data.description) { updates.push('description = ?'); values.push(data.description); }
   if (data.longDescription) { updates.push('long_description = ?'); values.push(data.longDescription); }
-  if (data.visibility) { updates.push('visibility = ?'); values.push(data.visibility); }
+  if (data.visibility) {
+    // 普通用户不能将工具设为 public/team（越权发布），只有平台 owner 可以
+    if (!isOwnerUser && (data.visibility === 'public' || data.visibility === 'team')) {
+      throw new Error('Only platform owner can make tools public or team-visible');
+    }
+    updates.push('visibility = ?');
+    values.push(data.visibility);
+  }
   if (data.status) {
     // 只有平台 owner 可以改状态（发布/审核/下架），普通作者不能自行发布
     if (!isOwnerUser) {

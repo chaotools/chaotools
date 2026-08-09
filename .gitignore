@@ -1,0 +1,45 @@
+# dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# build output
+dist/
+hub/dist/
+gateway/dist/
+packages/*/dist/
+*.map
+
+# environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.jwt-secret
+
+# runtime data
+data/
+outputs/
+uploads/
+backgrounds/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.log
+messages.json
+stats.json
+
+# archives & binaries
+*.zip
+*.gz
+*.exe
+*.tar
+
+# editor/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

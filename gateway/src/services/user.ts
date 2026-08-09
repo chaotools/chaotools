@@ -35,6 +35,20 @@ export function initUserTable() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_favorites (
+      user_id TEXT NOT NULL,
+      tool_id TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, tool_id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON user_favorites(user_id);
+  `);
 }
 
 // 用户档案
@@ -247,7 +261,7 @@ export function changePassword(userId: string, oldPassword: string, newPassword:
 }
 
 /**
- * 获取公开用户信息
+ * 获取用户公开信息
  */
 export function getPublicUserInfo(userId: string) {
   const user = db.prepare(`
@@ -265,4 +279,66 @@ export function getPublicUserInfo(userId: string) {
     createdAt: user.created_at,
     profile,
   };
+}
+
+/**
+ * 获取用户收藏的工具 ID 列表
+ */
+export function getUserFavorites(userId: string): string[] {
+  const rows = db.prepare(`
+    SELECT tool_id FROM user_favorites WHERE user_id = ? ORDER BY created_at DESC
+  `).all(userId) as any[];
+  return rows.map((r) => r.tool_id);
+}
+
+/**
+ * 全量替换用户收藏（合并同步用）
+ */
+export function replaceUserFavorites(userId: string, toolIds: string[]): boolean {
+  try {
+    db.prepare('DELETE FROM user_favorites WHERE user_id = ?').run(userId);
+    const insert = db.prepare(`
+      INSERT OR IGNORE INTO user_favorites (user_id, tool_id) VALUES (?, ?)
+    `);
+    const tx = db.transaction((ids: string[]) => {
+      for (const id of ids) {
+        insert.run(userId, id);
+      }
+    });
+    tx([...new Set(toolIds)]);
+    return true;
+  } catch (err) {
+    console.error('Replace favorites error:', err);
+    return false;
+  }
+}
+
+/**
+ * 添加单个收藏
+ */
+export function addUserFavorite(userId: string, toolId: string): boolean {
+  try {
+    db.prepare(`
+      INSERT OR IGNORE INTO user_favorites (user_id, tool_id) VALUES (?, ?)
+    `).run(userId, toolId);
+    return true;
+  } catch (err) {
+    console.error('Add favorite error:', err);
+    return false;
+  }
+}
+
+/**
+ * 移除单个收藏
+ */
+export function removeUserFavorite(userId: string, toolId: string): boolean {
+  try {
+    db.prepare(`
+      DELETE FROM user_favorites WHERE user_id = ? AND tool_id = ?
+    `).run(userId, toolId);
+    return true;
+  } catch (err) {
+    console.error('Remove favorite error:', err);
+    return false;
+  }
 }
