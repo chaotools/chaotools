@@ -15,8 +15,9 @@
 | 🧰 **工具市场** | 40+ 个工具（开发 / AI 导航 / 趣味），manifest 驱动动态增减 |
 | 🤖 **AI 大模型导航** | ChatGPT、Claude、DeepSeek、Gemini、Kimi、通义千问、Grok、Perplexity — 品牌图标 + 一键直达 |
 | 💬 **留言板 / 工具 API** | 留言、SRT 翻译与替换规则同步、访问计数（Node.js + Express） |
+| 🔐 **登录与收藏同步** | 可选登录（短令牌 + httpOnly 刷新 Cookie），收藏跨设备同步 |
 | 🔍 **搜索 + 分类** | 客户端即时搜索 + 分类筛选（开发 / AI / 趣味） |
-| 🎨 **暗色/亮色主题** | CSS 变量驱动，一键切换 |
+| 🎨 **工具柜主题** | 暖灰工作台 + 深棕铭牌 + 抽屉卡片，支持暗色/亮色切换 |
 | 🖼 **品牌图标** | 品牌色圆形 PNG 图标，manifest 驱动，热更新无需构建 |
 | 📱 **响应式设计** | 适配桌面端和移动端 |
 
@@ -49,6 +50,7 @@
 │  │  │ /lhb-analyzer/         │  │    │
 │  │  │ /audio-trimmer/        │  │    │
 │  │  │ api.chaotools.tech     │  │    │
+│  │  │ /gateway/* 认证/收藏    │  │    │
 │  │  └────────────────────────┘  │    │
 │  └──────────────────────────────┘    │
 │                                      │
@@ -69,15 +71,15 @@
 | 前端框架 | React 18 + TypeScript | SPA 单页应用 |
 | 构建工具 | Vite 5 | 快速 HMR + 构建 |
 | 路由 | React Router v6 | 首页 / 探索 / 收藏 / 工具详情 |
-| 样式 | CSS3 自定义变量 | 暗色/亮色双主题 |
+| 样式 | CSS3 自定义变量 | 工具柜主题（暗色/亮色） |
 | 搜索 | 客户端即时搜索 | 名称/描述/标签子串匹配 |
 | 后端 API | Node.js + Express / Python FastAPI | 留言板、视频工作室、证件照、龙虎榜分析等 |
-| 网关 (开发中) | Hono 4 + SQLite | 工具注册 / 用户认证 / 权限管理 |
+| 网关 | Hono 4 + SQLite + JWT | 登录注册 / 刷新令牌 / 收藏同步 / 权限管理 |
 | 类型系统 | `@chaotools/types` | 统一类型定义（Hub + Gateway 共用） |
 | 部署 | Nginx + systemd | 静态文件服务 + 反向代理 + 服务托管 |
 | 存储 | JSON 文件 | 轻量留言数据持久化 |
 | 依赖管理 | pnpm | monorepo workspace |
-| 版本控制 | GitHub | 公开源码托管 |
+| 版本控制 | GitHub | 私有仓库托管 |
 
 ## 📁 项目结构
 
@@ -95,15 +97,21 @@ chaotools/
 │   │   │   ├── BackToTop.tsx         # 回到顶部
 │   │   │   ├── LoadingSpinner.tsx    # 加载动画
 │   │   │   └── ErrorBoundary.tsx     # 错误边界
+│   │   ├── context/
+│   │   │   └── AuthContext.tsx       # 登录态（内存短令牌 + 刷新 Cookie）
+│   │   ├── api/
+│   │   │   └── client.ts             # Gateway API 客户端（自动刷新令牌）
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx          # 首页（工具网格 + 搜索）
 │   │   │   ├── ExplorePage.tsx       # 探索页面
 │   │   │   ├── MyToolsPage.tsx       # 收藏页面
-│   │   │   └── ToolDetailPage.tsx    # 工具详情页
+│   │   │   ├── ToolDetailPage.tsx    # 工具详情页
+│   │   │   ├── LoginPage.tsx         # 登录页
+│   │   │   └── RegisterPage.tsx      # 注册页（含验证码）
 │   │   ├── hooks/
 │   │   │   ├── useTools.ts           # manifest 数据加载 + Fuse.js 搜索
 │   │   │   ├── useTheme.ts           # 主题切换
-│   │   │   ├── useLocalStorage.ts    # 本地收藏
+│   │   │   ├── useFavorites.ts       # 收藏（本地 + 服务端同步）
 │   │   │   └── useDebounce.ts        # 防抖
 │   │   ├── App.tsx                   # 路由配置
 │   │   └── main.tsx                  # 入口
@@ -116,8 +124,8 @@ chaotools/
 │   └── create-tool/                  # CLI 脚手架
 ├── gateway/                          # API 网关（Hono + SQLite + JWT）
 │   └── src/
-│       ├── routes/                   # tools / auth / registry / teams…
-│       └── services/                 # db / auth / permission…
+│       ├── routes/                   # auth / users / tools / registry / billing…
+│       └── services/                 # db / auth / permission / user…
 ├── tools/                            # 独立工具页
 ├── api/message-board/                # 留言板 / SRT / 计数 API（Node.js）
 ├── backends/                         # 独立后端服务源码（视频/证件照/龙虎榜）
@@ -158,7 +166,7 @@ cp dist/index.html /var/www/html/
 cp dist/assets/* /var/www/html/assets/
 
 # 后端服务（systemd）
-systemctl restart message-board video-studio miniapp-backend lhb-analyzer audio-trimmer
+systemctl restart message-board video-studio miniapp-backend lhb-analyzer audio-trimmer chaotools-gateway
 ```
 
 ## 🔄 添加新工具
@@ -196,6 +204,7 @@ systemctl restart message-board video-studio miniapp-backend lhb-analyzer audio-
   - `miniapp-backend`（8899）：证件照换底色 / 内容安全 / 汇率
   - `lhb-analyzer`（8000）：龙虎榜游资分析
   - `audio-trimmer`（8081）：音频静音裁剪
+  - `chaotools-gateway`（3001，经 Nginx `/gateway/` 代理）：登录 / 注册 / 刷新令牌 / 收藏同步
 - **CDN 策略**：Nginx 缓存控制（30d 不可变缓存 for hashed assets）
 - **源码托管**：[github.com/chaotools/chaotools](https://github.com/chaotools/chaotools)
 
@@ -205,9 +214,9 @@ MIT
 
 ---
 
-## 公开仓库说明
+## 仓库说明
 
-本仓库为 Chaotools 网站的公开源码（已做脱敏处理）。以下内容不包含在公开仓库中：
+本仓库为 Chaotools 网站的源码仓库（私有，已做脱敏处理）。以下内容不包含在仓库中：
 
 - 所有 `.env`、真实 API Key、密钥与令牌；
 - 生产数据（留言、统计、规则、数据库、题库数据等）；
