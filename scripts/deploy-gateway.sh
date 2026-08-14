@@ -22,6 +22,8 @@ ssh "${SERVER_USER}@${SERVER_HOST}" "
   set -euo pipefail
   cd '${RELEASE}'
   pnpm install --frozen-lockfile
+  pnpm --filter @chaotools/types build
+  pnpm --filter @chaotools/sdk build
   pnpm --filter @chaotools/gateway build
   pnpm --filter @chaotools/hub build
   cp -a hub/dist/. '${RELEASE}/'
