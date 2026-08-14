@@ -64,6 +64,14 @@ const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_payments_reference ON payments(type, reference_id, status);
     `,
   },
+  {
+    version: 4,
+    name: 'payment_external_id_uniqueness',
+    sql: `
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_external_id
+        ON payments(external_payment_id) WHERE external_payment_id IS NOT NULL;
+    `,
+  },
 ];
 
 export function runMigrations(): void {

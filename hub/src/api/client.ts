@@ -7,7 +7,8 @@
  * - 页面刷新后凭刷新 Cookie 自动恢复登录态
  */
 
-const BASE = '/gateway';
+const BASE = (import.meta.env.VITE_GATEWAY_BASE_URL || '/gateway').replace(/\/+$/, '');
+const REQUEST_TIMEOUT_MS = 15_000;
 
 let accessToken: string | null = null;
 let refreshInFlight: Promise<'ok' | 'rejected' | 'network'> | null = null;
@@ -43,15 +44,35 @@ interface ApiResponse<T = unknown> {
 
 function logoutLocal(): void {
   accessToken = null;
-  localStorage.removeItem('chaotools-user');
+  try {
+    localStorage.removeItem('chaotools-user');
+  } catch {
+    // Storage can be disabled by privacy settings; memory state is enough.
+  }
   window.dispatchEvent(new CustomEvent('chaotools:logout'));
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  if (init.signal) {
+    if (init.signal.aborted) controller.abort();
+    else init.signal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function tryRefresh(): Promise<'ok' | 'rejected' | 'network'> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
-      const response = await fetch(`${BASE}/auth/refresh`, {
+      const response = await fetchWithTimeout(`${BASE}/auth/refresh`, {
         method: 'POST',
         credentials: 'same-origin',
       });
@@ -83,11 +104,19 @@ async function request<T = unknown>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers,
-    credentials: 'same-origin',
-  });
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(`${BASE}${path}`, {
+      ...options,
+      headers,
+      credentials: 'same-origin',
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('请求超时，请稍后重试');
+    }
+    throw new Error('网络请求失败，请检查网络连接');
+  }
 
   let body: ApiResponse<T>;
   try {
@@ -193,7 +222,7 @@ export const api = {
 
   // 留言板热门工具统计（独立服务，非 gateway）
   async getPopularTools(n = 6): Promise<PopularTool[]> {
-    const response = await fetch(`/api/message-board/stats/popular?n=${n}`, {
+    const response = await fetchWithTimeout(`/api/message-board/stats/popular?n=${n}`, {
       headers: { 'Content-Type': 'application/json' },
     });
     const body = (await response.json()) as ApiResponse<PopularTool[]>;

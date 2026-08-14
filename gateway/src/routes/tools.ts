@@ -19,6 +19,7 @@ import {
   reviewTool,
 } from '../services/tools';
 import { isOwner } from '../services/auth';
+import { canViewTool } from '../services/permission';
 import type { UserContext } from '../types';
 
 const tools = new Hono<AppEnv>();
@@ -88,9 +89,9 @@ tools.get('/:id', async (c) => {
   }
 
   // 非公开/未发布工具仅限本人或平台 owner 查看
-  const isPublicPublished =
-    tool.visibility === 'public' && tool.status === 'published';
-  if (!isPublicPublished && !isOwner(user.id) && tool.owner?.id !== user.id) {
+  const isPublicPublished = tool.visibility === 'public' && tool.status === 'published';
+  const canView = canViewTool(tool, user.role, user.id);
+  if (!isPublicPublished && !canView) {
     return c.json({
       success: false,
       error: { code: 'FORBIDDEN', message: 'Tool is not public' },

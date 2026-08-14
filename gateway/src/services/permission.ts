@@ -7,6 +7,7 @@
  */
 
 import type { Tool, UserRole, PermissionMatrix } from '@chaotools/types';
+import { canUserAccessTeamTool } from './team';
 
 // 权限矩阵
 export interface RolePermissions {
@@ -196,7 +197,8 @@ export function canViewTool(
       return perms.canViewPrivate && isToolOwner;
     case 'team':
       // 团队归属尚未实现（tools 表无 team_id），暂时仅 owner 可见
-      return perms.canViewTeam && isToolOwner;
+      return perms.canViewTeam && Boolean(tool.owner?.id) &&
+        canUserAccessTeamTool(tool.owner!.id, userId, 'team');
     case 'public':
       return perms.canViewPublic;
     default:
@@ -224,7 +226,8 @@ export function canUseTool(
     case 'private':
       return perms.canUsePrivate && isToolOwner;
     case 'team':
-      return perms.canUseTeam && isToolOwner;
+      return perms.canUseTeam && Boolean(tool.owner?.id) &&
+        canUserAccessTeamTool(tool.owner!.id, userId, 'team');
     case 'public':
       return perms.canUsePublic;
     default:
@@ -342,7 +345,8 @@ export function filterToolsByVisibility(
       case 'private':
         return perms.canViewPrivate && tool.owner?.id === userId;
       case 'team':
-        return perms.canViewTeam && tool.owner?.id === userId;
+        return perms.canViewTeam && Boolean(tool.owner?.id) &&
+          canUserAccessTeamTool(tool.owner!.id, userId, 'team');
       case 'public':
         return perms.canViewPublic;
       default:

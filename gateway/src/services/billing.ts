@@ -221,7 +221,7 @@ export function cancelSubscription(userId: string): boolean {
   try {
     db.prepare(`
       UPDATE subscriptions
-      SET cancel_at_period_end = 1, status = 'cancelled', updated_at = datetime('now')
+      SET cancel_at_period_end = 1, updated_at = datetime('now')
       WHERE user_id = ? AND status = 'active'
     `).run(userId);
     return true;
@@ -480,7 +480,17 @@ export function updatePaymentStatus(
       // Replaying the same callback is safe and does not create a second
       // entitlement. Other state transitions are deliberately rejected.
       if (payment.status === status) return true;
-      if (payment.status !== 'pending') return false;
+      const isRefundFromCompleted = payment.status === 'completed' && status === 'refunded';
+      if (payment.status !== 'pending' && !isRefundFromCompleted) return false;
+
+      if (externalPaymentId) {
+        const duplicate = db.prepare(`
+          SELECT id FROM payments
+          WHERE external_payment_id = ? AND id <> ?
+          LIMIT 1
+        `).get(externalPaymentId, paymentId);
+        if (duplicate) return false;
+      }
 
       const tool = payment.type === 'purchase'
         ? db.prepare('SELECT name FROM tools WHERE id = ?').get(payment.reference_id) as { name: string } | undefined
@@ -495,8 +505,8 @@ export function updatePaymentStatus(
       db.prepare(`
         UPDATE payments
         SET status = ?, external_payment_id = COALESCE(?, external_payment_id), updated_at = datetime('now')
-        WHERE id = ? AND status = 'pending'
-      `).run(status, externalPaymentId ?? null, paymentId);
+        WHERE id = ? AND status = ?
+      `).run(status, externalPaymentId ?? null, paymentId, payment.status);
 
       if (status === 'completed' && payment.type === 'purchase') {
         db.prepare(`
@@ -525,6 +535,22 @@ export function updatePaymentStatus(
           periodEnd.toISOString(),
           paymentId
         );
+      }
+
+      if (status === 'refunded' && payment.type === 'purchase') {
+        db.prepare(`
+          UPDATE purchases
+          SET status = 'refunded'
+          WHERE payment_id = ? AND status = 'completed'
+        `).run(paymentId);
+      }
+
+      if (status === 'refunded' && payment.type === 'subscription') {
+        db.prepare(`
+          UPDATE subscriptions
+          SET status = 'cancelled', cancel_at_period_end = 1, updated_at = datetime('now')
+          WHERE payment_id = ? AND status IN ('active', 'trial')
+        `).run(paymentId);
       }
 
       return true;
