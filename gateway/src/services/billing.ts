@@ -423,6 +423,40 @@ export function createPayment(
   }
 }
 
+export interface PaymentVerification {
+  id: string;
+  userId: string;
+  type: 'subscription' | 'purchase';
+  referenceId: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+}
+
+export function getPaymentForWebhook(paymentId: string): PaymentVerification | null {
+  const row = db.prepare(`
+    SELECT id, user_id, type, reference_id, amount, status
+    FROM payments
+    WHERE id = ?
+  `).get(paymentId) as {
+    id: string;
+    user_id: string;
+    type: 'subscription' | 'purchase';
+    reference_id: string;
+    amount: number;
+    status: 'pending' | 'completed' | 'failed' | 'refunded';
+  } | undefined;
+
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    referenceId: row.reference_id,
+    amount: row.amount,
+    status: row.status,
+  };
+}
+
 /**
  * 更新支付状态
  */
@@ -432,12 +466,71 @@ export function updatePaymentStatus(
   externalPaymentId?: string
 ): boolean {
   try {
-    db.prepare(`
-      UPDATE payments
-      SET status = ?, external_payment_id = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(status, externalPaymentId, paymentId);
-    return true;
+    const update = db.transaction(() => {
+      const payment = db.prepare('SELECT * FROM payments WHERE id = ?').get(paymentId) as {
+        id: string;
+        user_id: string;
+        type: 'subscription' | 'purchase';
+        reference_id: string;
+        amount: number;
+        status: 'pending' | 'completed' | 'failed' | 'refunded';
+      } | undefined;
+
+      if (!payment) return false;
+      // Replaying the same callback is safe and does not create a second
+      // entitlement. Other state transitions are deliberately rejected.
+      if (payment.status === status) return true;
+      if (payment.status !== 'pending') return false;
+
+      const tool = payment.type === 'purchase'
+        ? db.prepare('SELECT name FROM tools WHERE id = ?').get(payment.reference_id) as { name: string } | undefined
+        : undefined;
+      const plan = payment.type === 'subscription'
+        ? db.prepare('SELECT interval FROM plans WHERE id = ? AND is_active = 1')
+          .get(payment.reference_id) as { interval: 'month' | 'year' | 'lifetime' } | undefined
+        : undefined;
+      if (payment.type === 'purchase' && !tool) return false;
+      if (payment.type === 'subscription' && !plan) return false;
+
+      db.prepare(`
+        UPDATE payments
+        SET status = ?, external_payment_id = COALESCE(?, external_payment_id), updated_at = datetime('now')
+        WHERE id = ? AND status = 'pending'
+      `).run(status, externalPaymentId ?? null, paymentId);
+
+      if (status === 'completed' && payment.type === 'purchase') {
+        db.prepare(`
+          INSERT OR IGNORE INTO purchases
+            (id, user_id, tool_id, tool_name, price, status, payment_method, payment_id)
+          VALUES (?, ?, ?, ?, ?, 'completed', 'wechat', ?)
+        `).run(randomUUID(), payment.user_id, payment.reference_id, tool!.name, payment.amount, paymentId);
+      }
+
+      if (status === 'completed' && payment.type === 'subscription') {
+        const periodStart = new Date();
+        const periodEnd = new Date(periodStart);
+        if (plan!.interval === 'month') periodEnd.setMonth(periodEnd.getMonth() + 1);
+        else if (plan!.interval === 'year') periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        else periodEnd.setFullYear(2099);
+
+        db.prepare(`
+          INSERT OR IGNORE INTO subscriptions
+            (id, user_id, plan_id, status, current_period_start, current_period_end, payment_id)
+          VALUES (?, ?, ?, 'active', ?, ?, ?)
+        `).run(
+          randomUUID(),
+          payment.user_id,
+          payment.reference_id,
+          periodStart.toISOString(),
+          periodEnd.toISOString(),
+          paymentId
+        );
+      }
+
+      return true;
+    });
+
+    return update.immediate();
   } catch (err) {
     console.error('Update payment status error:', err);
     return false;

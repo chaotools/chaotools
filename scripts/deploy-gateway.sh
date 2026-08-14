@@ -1,24 +1,36 @@
-#!/bin/bash
-# Deploy Gateway to Server
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+# Deploy the complete production worktree to the systemd-backed server.
+# Run from a checked-out commit in CI or from a developer worktree.
 
-echo "🚀 Deploying Chaotools Gateway..."
+: "${SERVER_HOST:?SERVER_HOST is required}"
+: "${SERVER_USER:?SERVER_USER is required}"
 
-cd "$(dirname "$0")/.."
+VERSION="${VERSION:-$(date -u +%Y%m%d-%H%M%S)}"
+RELEASE="/var/www/releases/${VERSION}"
+CURRENT="/var/www/current"
+GIT_REF="${GIT_REF:-HEAD}"
 
-# Build
-echo "📦 Building gateway..."
-pnpm -r --filter @chaotools/gateway build
+echo "Deploying ${GIT_REF} as ${VERSION}"
 
-# Deploy via SSH
-echo "🚀 Deploying to server..."
-ssh $SERVER_USER@$SERVER_HOST "
-  cd /var/www/chaotools
-  git pull
+git archive --format=tar "${GIT_REF}" | gzip -1 | \
+  ssh "${SERVER_USER}@${SERVER_HOST}" \
+    "mkdir -p '${RELEASE}' && tar -xzf - -C '${RELEASE}'"
+
+ssh "${SERVER_USER}@${SERVER_HOST}" "
+  set -euo pipefail
+  cd '${RELEASE}'
   pnpm install --frozen-lockfile
-  pnpm -r --filter @chaotools/gateway build
-  pm2 restart gateway || pm2 start dist/index.js --name gateway
+  pnpm --filter @chaotools/gateway build
+  pnpm --filter @chaotools/hub build
+  cp -a hub/dist/. '${RELEASE}/'
+  test -f '${RELEASE}/index.html'
+  test -f '${RELEASE}/manifest.json'
+  ln -sfn '${RELEASE}' '${CURRENT}'
+  sudo systemctl restart chaotools-gateway.service
+  curl -fsS http://127.0.0.1:3001/health >/dev/null
+  curl -fsS http://127.0.0.1:3001/ready >/dev/null
 "
 
-echo "✅ Deployment complete!"
+echo "Deployment ${VERSION} is active."

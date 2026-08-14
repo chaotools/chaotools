@@ -1,109 +1,49 @@
 # Chaotools 项目概览
 
-> 你的平台 | 你的规则 | 你的所有权
+Chaotools 是一个由 Hub、独立工具页和 Gateway 组成的在线工具工作台。
 
-## 架构图
+## 当前生产架构
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         chaotools.tech                           │
-│                       (用户访问入口)                             │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-┌───────────────┐      ┌───────────────┐      ┌───────────────┐
-│   Hub (主站)  │      │  Tools (工具)  │      │ Gateway (API) │
-│   Vercel     │      │ Cloudflare    │      │   你的服务器   │
-│   React+Vite │      │   静态文件    │      │   Hono+Bun   │
-└───────────────┘      └───────────────┘      └───────────────┘
+```text
+浏览器
+  │
+  └── Nginx / HTTPS / chaotools.tech
+       ├── 静态 Hub 与工具：/var/www/current
+       ├── Gateway：127.0.0.1:3001 → /gateway/
+       ├── 独立媒体、分析和内容服务
+       └── SQLite：/home/ubuntu/chaotools-data/chaotools.db
 ```
 
-## 项目结构
+`/var/www/html` 是线上源码和构建根目录；`/var/www/chaotools` 不再作为部署源。
 
+## 代码结构
+
+```text
+hub/                 React + Vite 主站
+gateway/             Hono API、认证、权限、账单和分析
+packages/types/      共享类型
+packages/sdk/        工具开发 SDK
+tools/               迁移后的独立工具
+shared/              工具页主题和公共运行时
+scripts/             校验、发布和回滚脚本
+ops/                 systemd 等运行配置模板
+docs/                架构、部署和权限文档
 ```
-chaotools/
-├── .github/workflows/     # CI/CD 配置
-├── packages/
-│   ├── types/           # 共享类型定义
-│   ├── sdk/             # 工具开发 SDK
-│   └── create-tool/      # CLI 脚手架
-├── hub/                  # 主站 (React + Vite)
-├── gateway/              # API 服务 (Hono + Bun)
-├── tools/                # 工具目录 (10 个已迁移)
-├── scripts/              # 部署脚本
-└── docs/                 # 文档
-```
 
-## 快速开始
-
-### 开发
+## 质量门禁
 
 ```bash
-# 安装依赖
-pnpm install
-
-# 开发模式
-pnpm dev
-
-# 或单独开发某个包
-cd hub && pnpm dev
-cd gateway && bun run dev
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm test
+pnpm --filter @chaotools/gateway build
+pnpm --filter @chaotools/hub build
 ```
 
-### 构建
+## 运行原则
 
-```bash
-pnpm build
-```
-
-### 部署
-
-详见 [部署指南](DEPLOYMENT_CHECKLIST.md)
-
-## 技术栈
-
-| 部分 | 技术 | 说明 |
-|------|------|------|
-| 主站 | React + Vite | 工具目录、搜索、用户界面 |
-| API | Hono + Bun | 高性能 API 服务 |
-| 数据库 | SQLite | 轻量级数据库 |
-| 部署 | Vercel + Cloudflare | 静态托管 + CDN |
-| 样式 | CSS Variables | 黑暗主题 |
-
-## 核心功能
-
-- [x] 三层架构 (私有/团队/社区)
-- [x] 工具所有权始终在 owner
-- [x] JWT 认证
-- [x] 工具注册审核
-- [x] CI/CD 自动部署
-- [x] 10 个工具已迁移
-- [ ] 社区贡献流程
-- [ ] 用户系统
-- [ ] 数据分析
-- [ ] 商业化功能
-
-## 费用估算
-
-| 服务 | 费用 | 说明 |
-|------|------|------|
-| 域名 | ~$10/年 | .tech 域名 |
-| Vercel | 免费 | Hobby 计划足够 |
-| Cloudflare | 免费 | Pages 免费额度 |
-| 服务器 | $5-20/月 | 1核1G 即可 |
-| **总计** | **~$70-250/年** | 非常便宜 |
-
-## 下一步
-
-1. 配置 GitHub Secrets
-2. 部署到 Vercel/Cloudflare
-3. 初始化数据库
-4. 迁移自定义域名
-5. 开始使用！
-
-## 文档
-
-- [部署检查清单](DEPLOYMENT_CHECKLIST.md)
-- [权限模型](PERMISSION_MODEL.md)
-- [贡献指南](../CONTRIBUTING.md)
+- Gateway 只监听回环地址，公网入口统一经过 Nginx。
+- 生产密钥只放在 `/etc/chaotools/gateway.env`。
+- 数据库、备份、日志和媒体输出不放入网站根目录。
+- 发布使用版本目录和 `current` 符号链接，旧版本保留用于回滚。
+- 外部 AI 和其他第三方服务只作为入口，不嵌入或修改第三方页面。

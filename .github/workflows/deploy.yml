@@ -1,92 +1,49 @@
-name: Deploy
+name: Deploy production
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to deploy'
+        required: true
+        default: 'main'
 
 jobs:
-  deploy-hub:
-    name: Deploy Hub to Vercel
+  deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: ${{ steps.deploy.outputs.url }}
+    environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm --filter @chaotools/gateway build
+      - run: pnpm --filter @chaotools/hub build
 
-      - name: Build hub
-        run: pnpm -r --filter @chaotools/hub build
+      - name: Configure SSH
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy to Vercel
-        id: deploy
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_HUB_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: ./hub
-
-  deploy-tools:
-    name: Deploy Tools to Cloudflare Pages
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: chaotools-tools
-          directory: ./tools
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-
-  deploy-gateway:
-    name: Deploy Gateway
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build gateway
-        run: pnpm -r --filter @chaotools/gateway build
-
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd /var/www/chaotools
-            git pull
-            pnpm install --frozen-lockfile
-            pnpm -r --filter @chaotools/gateway build
-            pm2 restart gateway || pm2 start gateway/dist/index.js --name gateway
+      - name: Deploy atomic release
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          GIT_REF: ${{ inputs.ref }}
+        run: ./scripts/deploy-gateway.sh

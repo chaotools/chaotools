@@ -1,35 +1,27 @@
-name: Deploy Preview
+name: Build preview
 
 on:
   pull_request:
     branches: [main]
 
 jobs:
-  deploy-preview:
-    name: Deploy Preview
+  preview:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
-
-      - name: Build hub
-        run: pnpm -r --filter @chaotools/hub build
-
-      - name: Deploy Preview to Vercel
-        uses: amondnet/vercel-action@v25
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm --filter @chaotools/hub build
+      - uses: actions/upload-artifact@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_HUB_PROJECT_ID }}
-          github-comment: true
-          working-directory: ./hub
+          name: hub-preview
+          path: hub/dist
+          retention-days: 7

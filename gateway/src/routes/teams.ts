@@ -13,6 +13,8 @@ import {
   addTeamMember,
   removeTeamMember,
   isTeamOwner,
+  getUserIdByEmail,
+  teamExists,
 } from '../services/team';
 import { isOwner } from '../services/auth';
 import type { UserContext } from '../types';
@@ -99,12 +101,33 @@ teams.post('/:id/members', zValidator('json', z.object({
     }, 403);
   }
 
-  // TODO: 根据 email 查找用户
-  // 目前先返回错误
+  if (!teamExists(id)) {
+    return c.json({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Team not found' },
+    }, 404);
+  }
+
+  const memberId = getUserIdByEmail(body.email);
+  if (!memberId) {
+    return c.json({
+      success: false,
+      error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+    }, 404);
+  }
+
+  const added = addTeamMember(id, memberId, body.role || 'member');
+  if (!added) {
+    return c.json({
+      success: false,
+      error: { code: 'ALREADY_MEMBER', message: 'User is already a team member' },
+    }, 409);
+  }
+
   return c.json({
-    success: false,
-    error: { code: 'NOT_IMPLEMENTED', message: 'User lookup not implemented yet' },
-  }, 501);
+    success: true,
+    data: { teamId: id, userId: memberId, role: body.role || 'member' },
+  }, 201);
 });
 
 // DELETE /teams/:id/members/:userId - 移除成员

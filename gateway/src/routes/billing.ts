@@ -17,6 +17,7 @@ import {
   checkToolAccess,
   getToolPricing,
   createPayment,
+  getPaymentForWebhook,
   updatePaymentStatus,
   getUserPayments,
 } from '../services/billing';
@@ -225,6 +226,8 @@ billingWebhook.post('/webhook/payment', zValidator('json', z.object({
   paymentId: z.string(),
   status: z.enum(['completed', 'failed', 'refunded']),
   externalPaymentId: z.string().optional(),
+  amount: z.number().int().nonnegative().optional(),
+  referenceId: z.string().optional(),
   signature: z.string().min(1),
 })), async (c) => {
   const body = c.req.valid('json');
@@ -248,6 +251,26 @@ billingWebhook.post('/webhook/payment', zValidator('json', z.object({
       success: false,
       error: { code: 'INVALID_SIGNATURE', message: 'Invalid signature' },
     }, 401);
+  }
+
+  const payment = getPaymentForWebhook(body.paymentId);
+  if (!payment) {
+    return c.json({
+      success: false,
+      error: { code: 'PAYMENT_NOT_FOUND', message: 'Payment not found' },
+    }, 404);
+  }
+  if (body.amount !== undefined && body.amount !== payment.amount) {
+    return c.json({
+      success: false,
+      error: { code: 'AMOUNT_MISMATCH', message: 'Payment amount mismatch' },
+    }, 400);
+  }
+  if (body.referenceId !== undefined && body.referenceId !== payment.referenceId) {
+    return c.json({
+      success: false,
+      error: { code: 'REFERENCE_MISMATCH', message: 'Payment reference mismatch' },
+    }, 400);
   }
 
   const success = updatePaymentStatus(
