@@ -14,7 +14,7 @@ Environment=NODE_ENV=production
 ExecStartPre=/usr/bin/test -r /etc/chaotools/gateway.env
 ExecStartPre=/usr/bin/test -d /home/ubuntu/chaotools-data
 ExecStartPre=/usr/bin/test -d /var/www/current/gateway
-ExecStart=/var/www/current/node_modules/.bin/tsx src/index.ts
+ExecStart=/usr/bin/node /var/www/current/node_modules/.pnpm/node_modules/tsx/dist/cli.mjs src/index.ts
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
