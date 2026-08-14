@@ -3,6 +3,8 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
+import type { AppEnv } from '../types';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import {
@@ -19,10 +21,10 @@ import {
 import { isOwner } from '../services/auth';
 import type { UserContext } from '../types';
 
-const tools = new Hono();
+const tools = new Hono<AppEnv>();
 
 // 获取 URL 参数
-const getQuery = (c: Hono) => ({
+const getQuery = (c: Context<AppEnv>) => ({
   page: parseInt(c.req.query('page') || '1', 10),
   pageSize: parseInt(c.req.query('pageSize') || '20', 10),
 });

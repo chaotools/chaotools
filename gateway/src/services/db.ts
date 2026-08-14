@@ -13,6 +13,10 @@ mkdirSync(join(DB_PATH, '..'), { recursive: true });
 
 const db = new Database(DB_PATH);
 
+// SQLite 生产并发与外键约束
+db.pragma('busy_timeout = 5000');
+db.pragma('foreign_keys = ON');
+
 // 启用 WAL 模式，提升并发性能
 db.pragma('journal_mode = WAL');
 

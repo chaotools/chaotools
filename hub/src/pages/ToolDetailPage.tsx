@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTools } from '@/hooks/useTools';
 import { useFavorites } from '@/hooks/useFavorites';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { rememberRecentTool } from '@/hooks/useRecentTools';
 
 export function ToolDetailPage() {
   const { toolId } = useParams<{ toolId: string }>();
@@ -10,37 +11,24 @@ export function ToolDetailPage() {
   const { getToolById, loading, error, categories } = useTools();
   const { savedIds, toggleSave } = useFavorites();
 
-  const tool = useMemo(() => {
-    if (!toolId) return undefined;
-    return getToolById(toolId);
-  }, [toolId, getToolById]);
+  const tool = useMemo(() => (toolId ? getToolById(toolId) : undefined), [toolId, getToolById]);
+  const isSaved = useMemo(() => savedIds.includes(toolId ?? ''), [savedIds, toolId]);
 
-  // 分类显示名由 manifest 数据驱动，未知分类回退显示原始 id
   const categoryName = useCallback(
-    (catId: string): string => {
-      const cat = categories.find((c) => c.id === catId);
-      return cat ? `${cat.icon} ${cat.name}` : catId;
-    },
+    (catId: string) => categories.find((category) => category.id === catId)?.name ?? catId,
     [categories]
   );
 
-  const isSaved = useMemo(
-    () => savedIds.includes(toolId ?? ''),
-    [savedIds, toolId]
-  );
-
   const handleToggleSave = useCallback(() => {
-    if (!toolId) return;
-    void toggleSave(toolId);
+    if (toolId) void toggleSave(toolId);
   }, [toolId, toggleSave]);
 
   const handleOpen = useCallback(() => {
-    if (tool?.tech.entry) {
-      window.open(tool.tech.entry, '_blank', 'noopener,noreferrer');
-    }
+    if (!tool?.tech.entry) return;
+    rememberRecentTool(tool.id);
+    window.open(tool.tech.entry, '_blank', 'noopener,noreferrer');
   }, [tool]);
 
-  // Loading state
   if (loading) {
     return (
       <div className="tool-detail-page">
@@ -52,38 +40,30 @@ export function ToolDetailPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="tool-detail-page">
         <div className="container section text-center">
           <div className="card p-8 narrow-card">
-            <div className="empty-state__icon">⚠️</div>
+            <div className="tool-detail__status-mark" aria-hidden="true">!</div>
             <h2>加载失败</h2>
             <p className="text-muted">{error}</p>
-            <button className="btn btn-primary mt-4" onClick={() => navigate(-1)}>
-              返回
-            </button>
+            <button className="btn btn-primary mt-4" onClick={() => navigate(-1)}>返回</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Not found
   if (!tool) {
     return (
       <div className="tool-detail-page">
         <div className="container section text-center">
           <div className="card p-8 narrow-card">
-            <div className="empty-state__icon">🔍</div>
+            <div className="tool-detail__status-mark" aria-hidden="true">?</div>
             <h2>工具未找到</h2>
-            <p className="text-muted">
-              该工具可能已被移除或链接无效
-            </p>
-            <Link to="/explore" className="btn btn-primary mt-4" style={{ display: 'inline-flex' }}>
-              浏览其他工具
-            </Link>
+            <p className="text-muted">该工具可能已被移除或链接无效。</p>
+            <Link to="/explore" className="btn btn-primary mt-4">浏览其他工具</Link>
           </div>
         </div>
       </div>
@@ -92,94 +72,77 @@ export function ToolDetailPage() {
 
   const iconSrc = tool.thumbnail || tool.icon;
   const isEmoji = iconSrc ? /^\p{Emoji}/u.test(iconSrc) : true;
+  const isExternal = /^https?:\/\//i.test(tool.tech.entry || '');
   const primaryCat = tool.categories[0];
-  const catModifier = ['dev', 'ai', 'fun'].includes(primaryCat)
-    ? `tool-detail__hero--${primaryCat}`
-    : '';
+  const catModifier = ['dev', 'ai', 'fun'].includes(primaryCat) ? 'tool-detail__hero--' + primaryCat : '';
 
   return (
     <div className="tool-detail-page">
       <div className="container section">
-        {/* Breadcrumb */}
-        <nav className="breadcrumb animate-fade-in-up" aria-label="面包屑导航">
+        <nav className="breadcrumb" aria-label="面包屑导航">
           <Link to="/">首页</Link>
-          <span>/</span>
+          <span aria-hidden="true">/</span>
           <Link to="/explore">探索</Link>
-          <span>/</span>
+          <span aria-hidden="true">/</span>
           <span className="breadcrumb__current">{tool.name}</span>
         </nav>
 
-        {/* Hero */}
-        <div className={`tool-detail__hero card animate-fade-in-up stagger-1 ${catModifier}`}>
+        <article className={'tool-detail__hero card ' + catModifier}>
           <div className="tool-detail__hero-content">
-            {/* Icon */}
-            <div className={`tool-detail__icon ${isEmoji ? 'tool-detail__icon--emoji' : ''}`}>
+            <div className={'tool-detail__icon ' + (isEmoji ? 'tool-detail__icon--emoji' : '')}>
               {isEmoji ? (
-                <span className="tool-detail__emoji">{iconSrc}</span>
+                <span className="tool-detail__emoji" aria-hidden="true">{iconSrc || 'CT'}</span>
               ) : (
-                <img
-                  src={iconSrc}
-                  alt={tool.name}
-                  className="tool-detail__img"
-                  width={80}
-                  height={80}
-                />
+                <img src={iconSrc} alt="" className="tool-detail__img" width={72} height={72} />
               )}
             </div>
 
-            {/* Info */}
             <div className="tool-detail__info">
+              <p className="tool-detail__eyebrow">{isExternal ? '外部服务' : '在线工具'}</p>
               <h1 className="tool-detail__name">{tool.name}</h1>
               <p className="tool-detail__desc">{tool.description}</p>
 
-              {/* Categories */}
-              <div className="tool-detail__categories">
+              <div className="tool-detail__categories" aria-label="工具分类">
                 {tool.categories.map((catId) => (
-                  <Link
-                    key={catId}
-                    to={`/explore?category=${catId}`}
-                    className={`badge tool-detail__cat tool-detail__cat--${catId}`}
-                  >
+                  <Link key={catId} to={'/explore?category=' + catId} className="badge">
                     {categoryName(catId)}
                   </Link>
                 ))}
               </div>
 
-              {/* Tags */}
-              <div className="tool-detail__tags">
-                {tool.tags.map((tag) => (
-                  <span key={tag} className="badge badge-grad">
-                    {tag}
-                  </span>
-                ))}
+              <div className="tool-detail__tags" aria-label="工具标签">
+                {tool.tags.map((tag) => <span key={tag} className="badge">{tag}</span>)}
+              </div>
+
+              <div className="tool-detail__meta">
+                <span>{isExternal ? '第三方网站' : 'Chaotools 工具'}</span>
+                {tool.tech.version && <span>版本 {tool.tech.version}</span>}
               </div>
             </div>
 
-            {/* Actions */}
             <div className="tool-detail__actions">
-              <button className="btn btn-primary btn-lg" onClick={handleOpen}>
-                🚀 打开工具
-              </button>
+              <button className="btn btn-primary btn-lg" onClick={handleOpen}>打开工具</button>
               <button
-                className={`btn btn-lg ${isSaved ? 'btn-secondary' : 'btn-ghost'}`}
+                className={'btn btn-lg ' + (isSaved ? 'btn-secondary' : 'btn-ghost')}
                 onClick={handleToggleSave}
+                aria-pressed={isSaved}
               >
-                {isSaved ? '⭐ 已收藏' : '☆ 收藏'}
+                {isSaved ? '已收藏' : '收藏工具'}
               </button>
             </div>
           </div>
-        </div>
+        </article>
 
-        {/* Usage Info */}
-        <div className="tool-detail__tips card animate-fade-in-up stagger-2 mt-8">
-          <h3>💡 使用提示</h3>
+        <section className="tool-detail__tips card mt-8" aria-labelledby="tool-usage-title">
+          <h2 id="tool-usage-title">使用说明</h2>
           <ul>
-            <li>点击「打开工具」按钮在新标签页中访问该工具</li>
-            <li>收藏工具后可在「我的工具」页面快速访问</li>
-            <li>该工具由第三方提供，使用时请遵守相关服务条款</li>
+            <li>点击“打开工具”将在新标签页中访问该工具。</li>
+            <li>收藏后可在“我的工具”页面快速访问。</li>
+            <li>{isExternal ? '该服务由第三方提供，请遵守对应服务条款。' : '工具在浏览器中运行，请根据页面提示处理输入内容。'}</li>
           </ul>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
+

@@ -24,7 +24,8 @@ import { initUserTable } from './services/user';
 import { initBillingTable } from './services/billing';
 
 // 中间件
-import { authMiddleware, type UserContext } from './middleware/auth';
+import { authMiddleware } from './middleware/auth';
+import type { UserContext } from './types';
 
 // 初始化数据库
 initDatabase();

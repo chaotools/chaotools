@@ -3,10 +3,10 @@
  */
 
 import type { Context, Next } from 'hono';
-import type { UserContext } from '../types';
+import type { AppEnv, UserContext } from '../types';
 import { verifyToken, getUserById } from '../services/auth';
 
-export async function authMiddleware(c: Context, next: Next) {
+export async function authMiddleware(c: Context<AppEnv>, next: Next) {
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -39,7 +39,7 @@ export async function authMiddleware(c: Context, next: Next) {
 }
 
 // 可选认证中间件 - 不强制要求登录，但如果有 token 则解析
-export async function optionalAuthMiddleware(c: Context, next: Next) {
+export async function optionalAuthMiddleware(c: Context<AppEnv>, next: Next) {
   const authHeader = c.req.header('Authorization');
 
   if (authHeader && authHeader.startsWith('Bearer ')) {

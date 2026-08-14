@@ -4,7 +4,7 @@ import type { ThemeMode } from '@chaotools/types';
 export function useTheme() {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('chaotools-theme') as ThemeMode | null;
-    return saved ?? 'system';
+    return saved ?? 'light';
   });
 
   const applyTheme = useCallback((mode: ThemeMode) => {

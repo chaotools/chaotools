@@ -1,10 +1,53 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = 3456;
 const DATA_FILE = path.join(__dirname, 'messages.json');
+
+// JWT 验证（HS256，与 gateway 共用密钥）
+function loadJwtSecret() {
+  const envPath = '/var/www/html/gateway/.env';
+  try {
+    const raw = fs.readFileSync(envPath, 'utf-8');
+    const match = raw.match(/^JWT_SECRET=(.+)$/m);
+    if (match) return match[1].trim();
+  } catch (e) {
+    console.error('JWT_SECRET load error:', e.message);
+  }
+  return process.env.JWT_SECRET;
+}
+
+const JWT_SECRET = loadJwtSecret();
+
+function verifyJwt(token) {
+  if (!JWT_SECRET) return null;
+  try {
+    const [headerB64, payloadB64, signatureB64] = token.split('.');
+    if (!headerB64 || !payloadB64 || !signatureB64) return null;
+    const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf-8'));
+    if (header.alg !== 'HS256') return null;
+    const expected = crypto
+      .createHmac('sha256', JWT_SECRET)
+      .update(`${headerB64}.${payloadB64}`)
+      .digest('base64url');
+    if (expected !== signatureB64) return null;
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf-8'));
+    if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// 从 Authorization 头解析用户（可选）
+function authUser(req) {
+  const header = req.headers['authorization'] || '';
+  if (!header.startsWith('Bearer ')) return null;
+  return verifyJwt(header.slice(7));
+}
 
 app.disable('x-powered-by');
 app.set('trust proxy', true);
@@ -150,7 +193,13 @@ app.post('/messages', rateLimit, (req, res) => {
 
   const rawName = typeof name === 'string' ? name : '';
   const sanitizedName = sanitize(rawName).slice(0, MAX_NAME);
-  const displayName = sanitizedName || '匿名';
+
+  // 已登录用户：优先使用账号昵称，标识登录状态
+  const user = authUser(req);
+  const displayName = user?.name
+    ? `${sanitize(user.name).slice(0, MAX_NAME)}`
+    : sanitizedName || '匿名';
+  const isVerified = !!user;
 
   const messages = loadMessages();
 
@@ -164,6 +213,7 @@ app.post('/messages', rateLimit, (req, res) => {
     name: displayName,
     content: sanitizedContent,
     createdAt: new Date().toISOString(),
+    ...(isVerified ? { verified: true, userId: user.sub } : {}),
   };
   messages.unshift(newMsg);
   saveMessages(messages);

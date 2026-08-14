@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Tool } from '@chaotools/types';
+import { rememberRecentTool } from '@/hooks/useRecentTools';
 
 interface ToolCardProps {
   tool: Tool;
@@ -9,97 +10,64 @@ interface ToolCardProps {
   index?: number;
 }
 
-export const ToolCard = memo<ToolCardProps>(function ToolCard({
-  tool,
-  isSaved = false,
-  onToggleSave,
-  index = 0,
-}) {
+export const ToolCard = memo<ToolCardProps>(function ToolCard({ tool, isSaved = false, onToggleSave }) {
   const navigate = useNavigate();
-  // Determine if we have an image icon (PNG/thumbnail path) or emoji
-  const iconSrc = tool.thumbnail || tool.icon;
-  const isEmoji = iconSrc ? /^\p{Emoji}/u.test(iconSrc) : true;
-
-  const primaryCat = tool.categories[0];
-  const catModifier = ['dev', 'ai', 'fun'].includes(primaryCat)
-    ? `tool-card--${primaryCat}`
-    : '';
+  const iconSrc = tool.thumbnail || tool.icon || '•';
+  const isEmoji = /^\p{Emoji}/u.test(iconSrc);
 
   const handleClick = useCallback(() => {
+    rememberRecentTool(tool.id);
     navigate(`/tool/${tool.id}`);
   }, [navigate, tool.id]);
 
-  const handleSaveClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      onToggleSave?.(tool.id);
-    },
-    [onToggleSave, tool.id]
-  );
+  const handleSaveClick = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+    onToggleSave?.(tool.id);
+  }, [onToggleSave, tool.id]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleClick();
-      }
-    },
-    [handleClick]
-  );
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
+    }
+  }, [handleClick]);
 
   return (
     <article
-      className={`tool-card card card-interactive animate-fade-in-up ${catModifier}`}
-      style={{ animationDelay: `${Math.min(index, 9) * 80}ms` }}
+      className="tool-card card-interactive"
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="button"
       aria-label={`打开 ${tool.name}`}
     >
-      {/* Icon */}
-      <div className={`tool-card__icon ${isEmoji ? 'tool-card__icon--emoji' : ''}`}>
-        {isEmoji ? (
-          <span className="tool-card__emoji">{tool.icon}</span>
-        ) : (
-          <img
-            src={iconSrc}
-            alt={`${tool.name} 图标`}
-            className="tool-card__img"
-            loading="lazy"
-            width={48}
-            height={48}
-          />
+      <div className="tool-card__topline">
+        <span className="tool-card__category">{tool.categories[0] || '工具'}</span>
+        {onToggleSave && (
+          <button
+            className={`tool-card__save ${isSaved ? 'tool-card__save--active' : ''}`}
+            onClick={handleSaveClick}
+            aria-label={isSaved ? `取消收藏 ${tool.name}` : `收藏 ${tool.name}`}
+            title={isSaved ? '取消收藏' : '收藏'}
+          >
+            {isSaved ? '已收藏' : '收藏'}
+          </button>
         )}
       </div>
-
-      {/* Content */}
+      <div className="tool-card__icon" aria-hidden={isEmoji ? 'true' : undefined}>
+        {isEmoji ? <span className="tool-card__emoji">{iconSrc}</span> : <img src={iconSrc} alt="" loading="lazy" width={40} height={40} />}
+      </div>
       <div className="tool-card__body">
         <h3 className="tool-card__name">{tool.name}</h3>
         <p className="tool-card__desc">{tool.description}</p>
-
-        {/* Tags */}
-        <div className="tool-card__tags">
-          {tool.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="badge badge-grad">
-              {tag}
-            </span>
-          ))}
+        <div className="tool-card__footer">
+          <div className="tool-card__tags">
+            {tool.tags.slice(0, 2).map((tag) => <span key={tag} className="badge">{tag}</span>)}
+          </div>
+          <span className="tool-card__open">打开</span>
         </div>
       </div>
-
-      {/* Save Button */}
-      {onToggleSave && (
-        <button
-          className={`tool-card__save ${isSaved ? 'tool-card__save--active animate-pop' : ''}`}
-          onClick={handleSaveClick}
-          aria-label={isSaved ? `取消收藏 ${tool.name}` : `收藏 ${tool.name}`}
-          title={isSaved ? '取消收藏' : '收藏'}
-        >
-          {isSaved ? '⭐' : '☆'}
-        </button>
-      )}
     </article>
   );
 });

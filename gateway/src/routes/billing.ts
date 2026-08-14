@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -21,7 +22,7 @@ import {
 } from '../services/billing';
 import type { UserContext } from '../types';
 
-const billing = new Hono();
+const billing = new Hono<AppEnv>();
 
 // ============ 计划 ============
 

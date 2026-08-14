@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import {
@@ -16,7 +17,7 @@ import {
 import { isOwner } from '../services/auth';
 import type { UserContext } from '../types';
 
-const teams = new Hono();
+const teams = new Hono<AppEnv>();
 
 // GET /teams - 获取我的团队
 teams.get('/', async (c) => {

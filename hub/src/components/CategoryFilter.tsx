@@ -12,12 +12,7 @@ export const CategoryFilter = memo<CategoryFilterProps>(function CategoryFilter(
   activeCategory,
   onChange,
 }) {
-  const handleClick = useCallback(
-    (categoryId: string | null) => {
-      onChange(categoryId);
-    },
-    [onChange]
-  );
+  const handleClick = useCallback((categoryId: string | null) => onChange(categoryId), [onChange]);
 
   return (
     <div className="category-filter" role="radiogroup" aria-label="工具分类筛选">
@@ -27,19 +22,18 @@ export const CategoryFilter = memo<CategoryFilterProps>(function CategoryFilter(
         role="radio"
         aria-checked={activeCategory === null}
       >
-        🧰 全部
+        全部
       </button>
-
-      {categories.map((cat) => (
+      {categories.map((category) => (
         <button
-          key={cat.id}
-          className={`category-filter__btn ${activeCategory === cat.id ? 'category-filter__btn--active' : ''}`}
-          data-cat={cat.id}
-          onClick={() => handleClick(cat.id)}
+          key={category.id}
+          className={`category-filter__btn ${activeCategory === category.id ? 'category-filter__btn--active' : ''}`}
+          data-cat={category.id}
+          onClick={() => handleClick(category.id)}
           role="radio"
-          aria-checked={activeCategory === cat.id}
+          aria-checked={activeCategory === category.id}
         >
-          <span aria-hidden="true">{cat.icon}</span> {cat.name}
+          {category.name}
         </button>
       ))}
     </div>

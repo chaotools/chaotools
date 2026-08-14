@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import type { Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
@@ -20,7 +21,7 @@ import {
 } from '../services/auth';
 import { getUserById } from '../services/auth';
 
-const auth = new Hono();
+const auth = new Hono<AppEnv>();
 
 const REFRESH_COOKIE = 'chaotools_refresh';
 const REFRESH_COOKIE_PATH = '/gateway/auth';

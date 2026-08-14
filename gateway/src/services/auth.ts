@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID, randomBytes, createHash } from 'crypto';
 import type { UserContext, JwtPayload, LoginRequest, RegisterRequest } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET: string = process.env.JWT_SECRET ?? '';
 if (!JWT_SECRET) {
   throw new Error(
     'JWT_SECRET environment variable is required. ' +
@@ -30,7 +30,8 @@ export interface AuthResult {
 // 创建用户
 export async function createUser(data: RegisterRequest): Promise<AuthResult> {
   try {
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
+    const email = data.email.trim().toLowerCase();
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) {
       return { success: false, error: 'Email already registered' };
     }
@@ -60,7 +61,8 @@ export async function createUser(data: RegisterRequest): Promise<AuthResult> {
 // 登录
 export async function login(data: LoginRequest): Promise<AuthResult> {
   try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(data.email) as any;
+    const email = data.email.trim().toLowerCase();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
     if (!user) {
       return { success: false, error: 'Invalid credentials' };
     }
@@ -91,7 +93,13 @@ export async function login(data: LoginRequest): Promise<AuthResult> {
 // 验证 token
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (typeof decoded === 'string' || !decoded.sub || typeof decoded.sub !== 'string' ||
+        typeof decoded.name !== 'string' || typeof decoded.email !== 'string' ||
+        !['owner', 'member', 'contributor', 'public'].includes(String(decoded.role))) {
+      return null;
+    }
+    return decoded as unknown as JwtPayload;
   } catch {
     return null;
   }

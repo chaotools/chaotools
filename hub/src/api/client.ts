@@ -10,6 +10,7 @@
 const BASE = '/gateway';
 
 let accessToken: string | null = null;
+let refreshInFlight: Promise<'ok' | 'rejected' | 'network'> | null = null;
 
 // 页面加载时迁移历史 localStorage token（旧版本遗留）。
 // 只读入内存并立即移除，避免继续以明文形式暴露在 localStorage 中。
@@ -47,21 +48,26 @@ function logoutLocal(): void {
 }
 
 async function tryRefresh(): Promise<'ok' | 'rejected' | 'network'> {
-  try {
-    const response = await fetch(`${BASE}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'same-origin',
-    });
-    const body = (await response.json()) as ApiResponse<{ user: AuthUser; token: string }>;
-    if (response.ok && body.success && body.data?.token) {
-      accessToken = body.data.token;
-      return 'ok';
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const response = await fetch(`${BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const body = (await response.json()) as ApiResponse<{ user: AuthUser; token: string }>;
+      if (response.ok && body.success && body.data?.token) {
+        accessToken = body.data.token;
+        return 'ok' as const;
+      }
+      return 'rejected' as const;
+    } catch {
+      return 'network' as const;
+    } finally {
+      refreshInFlight = null;
     }
-    return 'rejected';
-  } catch {
-    // 网络异常：不视为认证失败，保留登录态，避免临时断网被登出
-    return 'network';
-  }
+  })();
+  return refreshInFlight;
 }
 
 async function request<T = unknown>(

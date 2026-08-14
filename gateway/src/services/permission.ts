@@ -189,7 +189,7 @@ export function canViewTool(
     return true;
   }
 
-  const isToolOwner = tool.owner.id === userId;
+  const isToolOwner = tool.owner?.id === userId;
 
   switch (tool.visibility) {
     case 'private':
@@ -218,7 +218,7 @@ export function canUseTool(
     return true;
   }
 
-  const isToolOwner = tool.owner.id === userId;
+  const isToolOwner = tool.owner?.id === userId;
 
   switch (tool.visibility) {
     case 'private':
@@ -241,7 +241,7 @@ export function canEditTool(
   userId: string
 ): boolean {
   const perms = getRolePermissions(userRole);
-  const isToolOwner = tool.owner.id === userId;
+  const isToolOwner = tool.owner?.id === userId;
 
   if (perms.canEditAny) {
     return true;
@@ -263,7 +263,7 @@ export function canDeleteTool(
   userId: string
 ): boolean {
   const perms = getRolePermissions(userRole);
-  const isToolOwner = tool.owner.id === userId;
+  const isToolOwner = tool.owner?.id === userId;
 
   if (perms.canDeleteAny) {
     return true;
@@ -340,9 +340,9 @@ export function filterToolsByVisibility(
 
     switch (tool.visibility) {
       case 'private':
-        return perms.canViewPrivate && tool.owner.id === userId;
+        return perms.canViewPrivate && tool.owner?.id === userId;
       case 'team':
-        return perms.canViewTeam && tool.owner.id === userId;
+        return perms.canViewTeam && tool.owner?.id === userId;
       case 'public':
         return perms.canViewPublic;
       default:
