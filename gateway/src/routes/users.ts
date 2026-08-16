@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import {
@@ -25,7 +26,7 @@ function findToolReference(toolId: string): boolean {
   return getToolById(toolId) !== null || getToolBySlug(toolId) !== null;
 }
 
-const users = new Hono();
+const users = new Hono<AppEnv>();
 
 // 获取我的档案
 users.get('/me/profile', async (c) => {

@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import type { Manifest, Tool } from '@chaotools/types';
 
+function isManifest(value: unknown): value is Manifest {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<Manifest>;
+  return typeof candidate.name === 'string' && typeof candidate.version === 'string' &&
+    Array.isArray(candidate.tools) && Array.isArray(candidate.categories);
+}
+
 interface UseToolsReturn {
   tools: Tool[];
   loading: boolean;
@@ -28,7 +35,8 @@ export function useTools(): UseToolsReturn {
       if (!response.ok) {
         throw new Error(`Failed to load manifest: ${response.status}`);
       }
-      const data: Manifest = await response.json();
+      const data: unknown = await response.json();
+      if (!isManifest(data)) throw new Error('Invalid manifest format');
       setManifest(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load tools';

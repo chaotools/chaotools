@@ -3,6 +3,11 @@
  */
 
 import type { Tool, User, UserRole } from '@chaotools/types';
+export type { Tool, User, UserRole } from '@chaotools/types';
+
+export interface AppEnv {
+  Variables: { user: UserContext };
+}
 
 // 用户上下文
 export interface UserContext {
@@ -56,7 +61,9 @@ export interface CreateToolRequest {
 }
 
 // 工具更新请求
-export interface UpdateToolRequest extends Partial<CreateToolRequest> {
+export interface UpdateToolRequest extends Omit<Partial<CreateToolRequest>, 'tech' | 'pricing'> {
+  tech?: Partial<CreateToolRequest['tech']>;
+  pricing?: Partial<NonNullable<CreateToolRequest['pricing']> >;
   status?: 'draft' | 'review' | 'published' | 'deprecated';
   review?: {
     reviewer: string;

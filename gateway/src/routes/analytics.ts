@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import {
   recordPageView,
   recordToolUsage,
@@ -16,7 +17,7 @@ import { isOwner } from '../services/auth';
 import { optionalAuthMiddleware, authMiddleware } from '../middleware/auth';
 import type { UserContext } from '../types';
 
-const analytics = new Hono();
+const analytics = new Hono<AppEnv>();
 
 // 记录页面访问 (公开)
 analytics.post('/page-view', optionalAuthMiddleware, async (c) => {

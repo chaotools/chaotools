@@ -1,63 +1,15 @@
-/* Chaotools Enhanced — 共享美化样式 */
-/* 在 <style> 块末尾或 </head> 前引用 */
+/* Compatibility enhancement layer for standalone Chaotools tools. */
+body.ct-tool-page button,
+body.ct-tool-page input,
+body.ct-tool-page textarea,
+body.ct-tool-page select {
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+body.ct-tool-page button:active:not(:disabled) { transform: translateY(0); }
+body.ct-tool-page .card:focus-within,
+body.ct-tool-page .panel:focus-within { box-shadow: var(--ct-shadow) !important; }
+body.ct-tool-page .loading,
+body.ct-tool-page [aria-busy="true"] { color: var(--ct-text-secondary); }
+body.ct-tool-page .spinner { animation: ct-spin .8s linear infinite; }
+@keyframes ct-spin { to { transform: rotate(360deg); } }
 
-/* 按钮微交互 */
-button {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  position: relative; overflow: hidden;
-}
-button:active { transform: scale(0.96) !important; }
-button:hover { transform: translateY(-1px); }
-
-/* 卡片焦点光晕 */
-.card:focus-within, .panel:focus-within {
-  box-shadow: 0 0 30px rgba(56,189,248,0.05) !important;
-}
-
-/* 输入框焦点发光 */
-textarea:focus, input:focus, select:focus {
-  border-color: var(--brand, #38bdf8) !important;
-  box-shadow: 0 0 0 3px rgba(56,189,248,0.10) !important;
-}
-
-/* 页面进场 */
-.container, .main, .wrapper {
-  animation: ctFadeIn 0.4s ease-out;
-}
-@keyframes ctFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Toast 通知 */
-.ct-toast {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  z-index: 9999; padding: 10px 22px; border-radius: 24px;
-  font-size: 13px; font-weight: 600; font-family: -apple-system, sans-serif;
-  pointer-events: none; opacity: 0;
-  backdrop-filter: blur(12px); border: 1px solid;
-  transition: opacity 0.3s;
-}
-.ct-toast.show {
-  animation: ctToastIn 0.3s ease-out forwards;
-}
-.ct-toast.success { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: #4ade80; }
-.ct-toast.error   { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); color: #f87171; }
-.ct-toast.info    { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.3); color: #38bdf8; }
-@keyframes ctToastIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.96); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-}
-
-/* 统计标签 */
-.stat {
-  transition: border-color 0.2s !important;
-}
-.stat:hover { border-color: rgba(56,189,248,0.25) !important; }
-
-/* 背景微光 */
-body {
-  background-image:
-    radial-gradient(ellipse at 50% 0%, rgba(56,189,248,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(56,189,248,0.03) 0%, transparent 40%) !important;
-}

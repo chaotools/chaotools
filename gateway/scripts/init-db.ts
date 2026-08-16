@@ -2,7 +2,11 @@
  * 数据库初始化脚本
  */
 
-import { initDatabase, db } from '../src/services/db';
+import { initDatabase, runMigrations, db } from '../src/services/db';
+import { initTeamTable } from '../src/services/team';
+import { initAnalyticsTable } from '../src/services/analytics';
+import { initUserTable } from '../src/services/user';
+import { initBillingTable } from '../src/services/billing';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
@@ -19,6 +23,11 @@ async function seed() {
 
   // 初始化表结构
   initDatabase();
+  initTeamTable();
+  initAnalyticsTable();
+  initUserTable();
+  initBillingTable();
+  runMigrations();
 
   // 创建 owner 用户
   const ownerPassword = await bcrypt.hash(adminPassword, 10);

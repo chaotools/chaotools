@@ -12,6 +12,7 @@ import { isOwner } from './auth';
 function rowToTool(row: any): Tool {
   return {
     id: row.id,
+    icon: row.icon || '',
     name: row.name,
     slug: row.slug,
     description: row.description,
@@ -166,7 +167,7 @@ export function updateTool(id: string, data: UpdateToolRequest, user: UserContex
   if (!tool) return null;
 
   // 权限检查
-  const canEdit = tool.owner.id === user.id || isOwner(user.id);
+  const canEdit = tool.owner?.id === user.id || isOwner(user.id);
   if (!canEdit) {
     throw new Error('Permission denied');
   }
@@ -227,7 +228,7 @@ export function deleteTool(id: string, user: UserContext): boolean {
   const tool = getToolById(id);
   if (!tool) return false;
 
-  const canDelete = tool.owner.id === user.id || isOwner(user.id);
+  const canDelete = tool.owner?.id === user.id || isOwner(user.id);
   if (!canDelete) {
     throw new Error('Permission denied');
   }
@@ -241,7 +242,7 @@ export function submitForReview(id: string, user: UserContext): Tool | null {
   const tool = getToolById(id);
   if (!tool) return null;
 
-  if (tool.owner.id !== user.id) {
+  if (tool.owner?.id !== user.id) {
     throw new Error('Only tool owner can submit for review');
   }
 

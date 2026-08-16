@@ -213,10 +213,11 @@ export function createTool(config: ToolConfig): void {
       }
     });
   } else if (typeof config.render === 'function') {
+    const render = config.render;
     // 函数方式
     document.addEventListener('DOMContentLoaded', () => {
       const app = createApp();
-      config.render!(app);
+      render(app);
       mountedCallback?.();
     });
   }
@@ -228,7 +229,3 @@ export function createTool(config: ToolConfig): void {
 export function getManifest(): ToolManifest {
   return { ...manifest };
 }
-
-// ============ 导出类型 ============
-
-export type { ToolConfig, ToolApp, ToolManifest, StorageAPI, RenderFunction };

@@ -1,37 +1,10 @@
-#!/bin/bash
-# Setup production server
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
-
-echo "🔧 Setting up Chaotools production server..."
-
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install pnpm
-npm install -g pnpm
-
-# Install PM2
-npm install -g pm2
-
-# Create app directory
-sudo mkdir -p /var/www/chaotools
-sudo chown $USER:$USER /var/www/chaotools
-
-# Clone repo
-cd /var/www/chaotools
-git clone https://github.com/YOUR_USERNAME/chaotools.git .
-
-# Install dependencies
-pnpm install --frozen-lockfile
-
-# Build
-pnpm build
-
-# Setup PM2
-pm2 start dist/index.js --name gateway
-pm2 save
-pm2 startup
-
-echo "✅ Server setup complete!"
+# One-time setup for the current Ubuntu + Nginx + systemd layout.
+sudo mkdir -p /var/www/releases /var/www/current /etc/chaotools
+sudo chown -R "${USER}:${USER}" /var/www/releases
+sudo install -d -o "${USER}" -g "${USER}" /home/ubuntu/chaotools-data
+echo "Install Node.js and pnpm using the host's package policy, then copy the"
+echo "ops/systemd/chaotools-gateway.service unit and set /etc/chaotools/gateway.env (0600)."
+echo "No PM2 process or /var/www/chaotools checkout is created by this script."

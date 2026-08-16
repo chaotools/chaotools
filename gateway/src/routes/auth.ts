@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import type { Context } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
@@ -20,7 +21,7 @@ import {
 } from '../services/auth';
 import { getUserById } from '../services/auth';
 
-const auth = new Hono();
+const auth = new Hono<AppEnv>();
 
 const REFRESH_COOKIE = 'chaotools_refresh';
 const REFRESH_COOKIE_PATH = '/gateway/auth';
@@ -121,7 +122,7 @@ function checkCaptcha(id: string, answer: string): boolean {
   return Number.isFinite(parsed) && parsed === rec.answer;
 }
 
-function clientIp(c: Context): string {
+function legacyClientIp(c: Context): string {
   // 优先信任 Nginx 写入的 X-Real-IP（真实客户端地址，客户端无法伪造）
   const realIp = c.req.header('x-real-ip');
   if (realIp) return realIp;
@@ -142,9 +143,33 @@ function clientIp(c: Context): string {
   }
 }
 
+function clientIp(c: Context): string {
+  let remoteAddress = 'unknown';
+  try {
+    const info = getConnInfo(c);
+    remoteAddress = info.remote.address || 'unknown';
+  } catch {
+    // Some adapters do not expose connection information.
+  }
+
+  const isTrustedProxy = remoteAddress === '127.0.0.1' || remoteAddress === '::1';
+  if (isTrustedProxy) {
+    const realIp = c.req.header('x-real-ip')?.trim();
+    if (realIp) return realIp;
+
+    const xff = c.req.header('x-forwarded-for');
+    if (xff) {
+      const parts = xff.split(',').map((s) => s.trim()).filter(Boolean);
+      if (parts.length > 0) return parts[parts.length - 1];
+    }
+  }
+
+  return remoteAddress;
+}
+
 function checkLoginRate(c: Context, email: string): boolean {
   cleanupRateMaps();
-  const key = `${clientIp(c)}:${email.toLowerCase()}`;
+  const key = `${clientIp(c)}:${email.trim().toLowerCase()}`;
   const now = Date.now();
   const rec = loginAttempts.get(key) || { count: 0, reset: now + LOGIN_WINDOW };
   if (now > rec.reset) {
@@ -157,7 +182,7 @@ function checkLoginRate(c: Context, email: string): boolean {
 }
 
 function clearLoginRate(c: Context, email: string): void {
-  loginAttempts.delete(`${clientIp(c)}:${email.toLowerCase()}`);
+  loginAttempts.delete(`${clientIp(c)}:${email.trim().toLowerCase()}`);
 }
 
 function checkRegisterRate(c: Context): boolean {
@@ -176,7 +201,7 @@ function checkRegisterRate(c: Context): boolean {
 
 // 登录（长度由 bcrypt 校验决定，注册端已强制复杂密码）
 auth.post('/login', zValidator('json', z.object({
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string().min(1),
 })), async (c) => {
   const body = c.req.valid('json');
@@ -207,8 +232,8 @@ auth.post('/login', zValidator('json', z.object({
 
 // 注册（需通过验证码，防止批量注册）
 auth.post('/register', zValidator('json', z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
+  name: z.string().trim().min(2),
+  email: z.string().trim().email(),
   password: z.string().min(8).regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, 'Password must contain both letters and numbers'),
   captchaId: z.string().min(1),
   captchaAnswer: z.string().min(1),
@@ -234,7 +259,7 @@ auth.post('/register', zValidator('json', z.object({
   const result = await createUser(body);
 
   if (!result.success) {
-    return c.json({ success: false, error: { code: 'REGISTRATION_FAILED', message: result.error } }, 400);
+    return c.json({ success: false, error: { code: 'REGISTRATION_FAILED', message: 'Unable to create account' } }, 400);
   }
 
   setRefreshCookie(c, createRefreshToken(result.user!.id));

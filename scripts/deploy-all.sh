@@ -1,22 +1,7 @@
-#!/bin/bash
-# Deploy All Services
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
-
-echo "🚀 Deploying Chaotools..."
-
-# Deploy in parallel where possible
-./scripts/deploy-hub.sh &
-HUB_PID=$!
-
-./scripts/deploy-tools.sh &
-TOOLS_PID=$!
-
-# Wait for all
-wait $HUB_PID
-wait $TOOLS_PID
-
-# Deploy gateway (usually needs more care)
-./scripts/deploy-gateway.sh
-
-echo "✅ All deployments complete!"
+# The production site is served from one atomic release tree. The gateway
+# deploy script builds Hub and Gateway together, so there is no split Vercel /
+# Cloudflare / PM2 deployment path to drift from the live server.
+"$(dirname "$0")/deploy-gateway.sh"

@@ -132,6 +132,15 @@ export function getTeamMembers(teamId: string): TeamMember[] {
   }));
 }
 
+export function teamExists(teamId: string): boolean {
+  return Boolean(db.prepare('SELECT id FROM teams WHERE id = ?').get(teamId));
+}
+
+export function getUserIdByEmail(email: string): string | null {
+  const row = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase()) as { id: string } | undefined;
+  return row?.id || null;
+}
+
 /**
  * 添加团队成员
  */
@@ -235,5 +244,12 @@ export function canUserAccessTeamTool(
   // TODO: 实现团队逻辑
   // 目前假设 owner 就是唯一的团队
   // 后续需要扩展：工具可以属于某个团队
-  return toolOwnerId === userId;
+  const member = db.prepare(`
+    SELECT tm.id
+    FROM teams t
+    INNER JOIN team_members tm ON tm.team_id = t.id
+    WHERE t.owner_id = ? AND tm.user_id = ?
+    LIMIT 1
+  `).get(toolOwnerId, userId);
+  return Boolean(member);
 }

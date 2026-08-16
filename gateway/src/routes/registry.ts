@@ -3,9 +3,10 @@
  */
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../types';
 import { getPublicTools } from '../services/tools';
 
-const registry = new Hono();
+const registry = new Hono<AppEnv>();
 
 // GET /registry - 获取公开工具列表
 registry.get('/', async (c) => {

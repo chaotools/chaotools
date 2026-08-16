@@ -128,10 +128,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .tab:hover:not(.active) { color: var(--text); }
     @media (max-width: 768px) { .split { flex-direction: column; height: auto; } .panel { min-height: 300px; } }
   </style>
-  <link rel="stylesheet" href="/shared/enhanced.css">
-<link rel="stylesheet" href="/toolbox-skin.css">
+  <link rel="stylesheet" href="/shared/enhanced.css?v=20260814-1045">
+<link rel="stylesheet" href="/toolbox-skin.css?v=20260814-1045">
+  <script defer src="/shared/tool-shell.js?v=20260814-1045">
+  </script>
 </head>
-<body>
+<body class="ct-tool-page" data-tool-id="markdown-preview" data-tool-family="editor">
 <!-- chaotools-unibar:start -->
 <div class="ct-unibar">
   <a class="ct-unibar__brand" href="/">🛠️ Chaotools</a>

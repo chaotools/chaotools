@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID, randomBytes, createHash } from 'crypto';
 import type { UserContext, JwtPayload, LoginRequest, RegisterRequest } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET: string = process.env.JWT_SECRET ?? '';
 if (!JWT_SECRET) {
   throw new Error(
     'JWT_SECRET environment variable is required. ' +
@@ -30,7 +30,8 @@ export interface AuthResult {
 // 创建用户
 export async function createUser(data: RegisterRequest): Promise<AuthResult> {
   try {
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(data.email);
+    const email = data.email.trim().toLowerCase();
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) {
       return { success: false, error: 'Email already registered' };
     }
@@ -42,9 +43,9 @@ export async function createUser(data: RegisterRequest): Promise<AuthResult> {
     db.prepare(`
       INSERT INTO users (id, name, email, password_hash, role)
       VALUES (?, ?, ?, ?, ?)
-    `).run(id, data.name, data.email, passwordHash, role);
+    `).run(id, data.name.trim(), email, passwordHash, role);
 
-    const user: UserContext = { id, name: data.name, email: data.email, role };
+    const user: UserContext = { id, name: data.name.trim(), email, role };
 
     return {
       success: true,
@@ -60,7 +61,8 @@ export async function createUser(data: RegisterRequest): Promise<AuthResult> {
 // 登录
 export async function login(data: LoginRequest): Promise<AuthResult> {
   try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(data.email) as any;
+    const email = data.email.trim().toLowerCase();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
     if (!user) {
       return { success: false, error: 'Invalid credentials' };
     }
@@ -91,7 +93,13 @@ export async function login(data: LoginRequest): Promise<AuthResult> {
 // 验证 token
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (typeof decoded === 'string' || !decoded.sub || typeof decoded.sub !== 'string' ||
+        typeof decoded.name !== 'string' || typeof decoded.email !== 'string' ||
+        !['owner', 'member', 'contributor', 'public'].includes(String(decoded.role))) {
+      return null;
+    }
+    return decoded as unknown as JwtPayload;
   } catch {
     return null;
   }
@@ -124,33 +132,68 @@ function cleanupExpiredRefreshTokens(): void {
 export function createRefreshToken(userId: string): string {
   const raw = randomBytes(48).toString('hex');
   const id = randomUUID();
+  const familyId = randomUUID();
   const expiresAt = new Date(Date.now() + REFRESH_TTL_MS).toISOString();
   db.prepare(`
-    INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
-    VALUES (?, ?, ?, ?)
-  `).run(id, userId, hashToken(raw), expiresAt);
+    INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, family_id)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, userId, hashToken(raw), expiresAt, familyId);
   cleanupExpiredRefreshTokens();
   return raw;
 }
 
 // 校验并轮换刷新令牌；返回新令牌与其所属用户
 export function rotateRefreshToken(raw: string): { raw: string; userId: string } | null {
-  const row = db.prepare('SELECT * FROM refresh_tokens WHERE token_hash = ?')
-    .get(hashToken(raw)) as any;
-  if (!row || row.revoked_at) return null;
-  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  const rotate = db.transaction(() => {
+    const row = db.prepare('SELECT * FROM refresh_tokens WHERE token_hash = ?')
+      .get(hashToken(raw)) as {
+        id: string;
+        user_id: string;
+        expires_at: string;
+        revoked_at: string | null;
+        family_id: string | null;
+      } | undefined;
 
-  // 轮换：撤销旧令牌，签发新令牌，缩短被窃取后的可用窗口
-  db.prepare('UPDATE refresh_tokens SET revoked_at = datetime(\'now\') WHERE id = ?').run(row.id);
-  const newRaw = randomBytes(48).toString('hex');
-  const newId = randomUUID();
-  const expiresAt = new Date(Date.now() + REFRESH_TTL_MS).toISOString();
-  db.prepare(`
-    INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
-    VALUES (?, ?, ?, ?)
-  `).run(newId, row.user_id, hashToken(newRaw), expiresAt);
+    if (!row) return null;
 
-  return { raw: newRaw, userId: row.user_id };
+    // A previously rotated token indicates replay/theft. Revoke the complete
+    // family so that a stolen sibling cannot continue to refresh the session.
+    if (row.revoked_at) {
+      const familyId = row.family_id || row.id;
+      db.prepare(`
+        UPDATE refresh_tokens
+        SET revoked_at = COALESCE(revoked_at, datetime('now')),
+            reuse_detected_at = COALESCE(reuse_detected_at, datetime('now'))
+        WHERE family_id = ? OR id = ?
+      `).run(familyId, row.id);
+      return null;
+    }
+
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      db.prepare("UPDATE refresh_tokens SET revoked_at = datetime('now') WHERE id = ?")
+        .run(row.id);
+      return null;
+    }
+
+    const newRaw = randomBytes(48).toString('hex');
+    const newId = randomUUID();
+    const familyId = row.family_id || row.id;
+    const expiresAt = new Date(Date.now() + REFRESH_TTL_MS).toISOString();
+
+    db.prepare(`
+      INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, family_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(newId, row.user_id, hashToken(newRaw), expiresAt, familyId);
+    db.prepare(`
+      UPDATE refresh_tokens
+      SET revoked_at = datetime('now'), replaced_by_id = ?
+      WHERE id = ?
+    `).run(newId, row.id);
+
+    return { raw: newRaw, userId: row.user_id };
+  });
+
+  return rotate.immediate();
 }
 
 export function revokeRefreshToken(raw: string): void {

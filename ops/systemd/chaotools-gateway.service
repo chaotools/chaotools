@@ -1,0 +1,25 @@
+[Unit]
+Description=Chaotools Gateway API
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/var/www/current/gateway
+EnvironmentFile=/etc/chaotools/gateway.env
+Environment=NODE_ENV=production
+ExecStartPre=/usr/bin/test -r /etc/chaotools/gateway.env
+ExecStartPre=/usr/bin/test -d /home/ubuntu/chaotools-data
+ExecStartPre=/usr/bin/test -d /var/www/current/gateway
+ExecStart=/usr/bin/node /var/www/current/node_modules/.pnpm/node_modules/tsx/dist/cli.mjs src/index.ts
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/home/ubuntu/chaotools-data
+
+[Install]
+WantedBy=multi-user.target

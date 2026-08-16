@@ -1,13 +1,5 @@
-#!/bin/bash
-# Deploy Tools to Cloudflare Pages
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
-
-echo "🚀 Deploying Chaotools Tools to Cloudflare Pages..."
-
-cd "$(dirname "$0")/.."
-
-# Wrangler deploy
-wrangler pages deploy tools/ --project-name=chaotools-tools
-
-echo "✅ Deployment complete!"
+node scripts/validate-manifest.mjs
+echo "Tool manifest validated. Use scripts/deploy-gateway.sh for the atomic production release."

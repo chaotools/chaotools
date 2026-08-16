@@ -1,205 +1,109 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTools } from '@/hooks/useTools';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useRecentTools } from '@/hooks/useRecentTools';
 import { ToolCard } from '@/components/ToolCard';
+import { ServiceRow } from '@/components/ServiceRow';
+import { SearchBar } from '@/components/SearchBar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { api, type PopularTool } from '@/api/client';
-
-function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: number }) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    let raf = 0;
-    const start = performance.now();
-    const tick = (t: number) => {
-      const p = Math.min((t - start) / duration, 1);
-      setN(Math.round(p * value));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value, duration]);
-  return <>{n}</>;
-}
 
 export function HomePage() {
   const navigate = useNavigate();
   const { tools, loading, categories, getToolsByCategory } = useTools();
+  const { savedIds, toggleSave } = useFavorites();
+  const { recentTools } = useRecentTools(tools);
+  const [search, setSearch] = useState('');
   const [popularItems, setPopularItems] = useState<PopularTool[]>([]);
 
-  const devTools = getToolsByCategory('dev').slice(0, 9);
-  const aiTools = getToolsByCategory('ai');
-  const funTools = getToolsByCategory('fun');
-
   useEffect(() => {
-    api.getPopularTools(6)
-      .then(setPopularItems)
-      .catch(() => {});
+    api.getPopularTools(6).then(setPopularItems).catch(() => {});
   }, []);
 
-  // Cross-reference popular IDs with actual tools
-  const popularTools = popularItems
-    .map(p => tools.find(t => t.id === p.id))
-    .filter(Boolean)
-    .slice(0, 6);
+  const popularTools = useMemo(() => {
+    const ranked = popularItems.map((item) => tools.find((tool) => tool.id === item.id)).filter(Boolean);
+    return (ranked.length ? ranked : tools).slice(0, 6) as typeof tools;
+  }, [popularItems, tools]);
+  const featuredIds = useMemo(() => new Set(popularTools.map((tool) => tool.id)), [popularTools]);
+  const savedTools = useMemo(() => tools.filter((tool) => savedIds.includes(tool.id)).slice(0, 6), [savedIds, tools]);
+  const aiTools = useMemo(() => getToolsByCategory('ai'), [getToolsByCategory]);
+  const visibleCategories = useMemo(() => categories.filter((category) => category.id !== 'ai'), [categories]);
+
+  const submitSearch = () => {
+    const query = search.trim();
+    navigate(query ? `/explore?q=${encodeURIComponent(query)}` : '/explore');
+  };
 
   return (
     <div className="home-page">
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="hero__blob hero__blob--1 animate-blob" aria-hidden="true" />
-        <div className="hero__blob hero__blob--2 animate-blob" aria-hidden="true" />
-        <div className="container hero__inner">
-          <div className="hero__badge animate-fade-in-down">
-            🛠️ 持续更新 · 越用越强
-          </div>
-          <h1 className="hero__title animate-fade-in-up stagger-1">
-            你的工具，
-            <span className="hero__highlight">你做主</span>
-          </h1>
-          <p className="hero__subtitle animate-fade-in-up stagger-2">
-            一站式在线工具箱，集成开发工具、AI 大模型导航与趣味工具，
-            <br />
-            让每一次开发都更高效。
-          </p>
-          <div className="hero__actions animate-fade-in-up stagger-3">
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={() => navigate('/explore')}
-            >
-              🔍 探索全部工具
-            </button>
-            <button
-              className="btn btn-secondary btn-lg"
-              onClick={() => navigate('/my-tools')}
-            >
-              ⭐ 我的收藏
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="hero__stats animate-fade-in-up stagger-4">
-            <div className="hero__stat">
-              <span className="hero__stat-value"><AnimatedNumber value={tools.length} />+</span>
-              <span className="hero__stat-label">在线工具</span>
-            </div>
-            <div className="hero__stat">
-              <span className="hero__stat-value"><AnimatedNumber value={categories.length} /></span>
-              <span className="hero__stat-label">工具分类</span>
-            </div>
-            <div className="hero__stat">
-              <span className="hero__stat-value">100%</span>
-              <span className="hero__stat-label">免费使用</span>
-            </div>
+      <section className="home-intro">
+        <div className="container home-intro__inner">
+          <p className="eyebrow">CHAOTOOLS / 工具工作台</p>
+          <h1>找到工具，马上开始。</h1>
+          <p className="home-intro__subtitle">开发、字幕、媒体和日常小工具，打开即用。</p>
+          <SearchBar value={search} onChange={setSearch} onSubmit={submitSearch} placeholder="搜索工具名称、功能或标签" />
+          <div className="home-category-nav" aria-label="工具分类">
+            <button onClick={() => navigate('/explore')}>全部工具</button>
+            {visibleCategories.map((category) => (
+              <button key={category.id} onClick={() => navigate(`/explore?category=${category.id}`)}>{category.name}</button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Popular Tools */}
-      {popularTools.length >= 3 && (
-        <section className="section">
-          <div className="container">
-            <div className="section-header">
-              <h2 className="section-title">🔥 热门工具</h2>
-              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-                根据使用次数排行
-              </span>
+      {loading ? (
+        <div className="container home-loading"><LoadingSpinner size="lg" /></div>
+      ) : (
+        <>
+          {recentTools.length > 0 && (
+            <section className="home-section">
+              <div className="container">
+                <div className="home-section__header"><div><p className="eyebrow">RECENT</p><h2>最近使用</h2></div></div>
+                <div className="grid grid-cols-3">{recentTools.map((tool) => <ToolCard key={tool.id} tool={tool} />)}</div>
+              </div>
+            </section>
+          )}
+
+          {savedTools.length > 0 && (
+            <section className="home-section home-section--quiet">
+              <div className="container">
+                <div className="home-section__header"><div><p className="eyebrow">SAVED</p><h2>收藏工具</h2></div><button className="text-link" onClick={() => navigate('/my-tools')}>查看全部</button></div>
+                <div className="grid grid-cols-3">{savedTools.map((tool) => <ToolCard key={tool.id} tool={tool} isSaved onToggleSave={toggleSave} />)}</div>
+              </div>
+            </section>
+          )}
+
+          <section className="home-section">
+            <div className="container">
+              <div className="home-section__header"><div><p className="eyebrow">SELECTED</p><h2>常用工具</h2></div><button className="text-link" onClick={() => navigate('/explore')}>浏览全部</button></div>
+              <div className="grid grid-cols-3">{popularTools.map((tool) => <ToolCard key={tool.id} tool={tool} isSaved={savedIds.includes(tool.id)} onToggleSave={toggleSave} />)}</div>
             </div>
-            <div className="grid grid-cols-3">
-              {popularTools.map((tool, i) => {
-                const stat = popularItems.find(p => p.id === tool!.id);
-                return (
-                  <div key={tool!.id} style={{ position: 'relative' }}>
-                    <ToolCard tool={tool!} index={i} />
-                    {stat && (
-                      <span className="tool-card__rank">
-                        {stat.total >= 1000 ? (stat.total / 1000).toFixed(1) + 'k' : stat.total} 次
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+          </section>
+
+          {visibleCategories.map((category) => {
+            const sectionTools = getToolsByCategory(category.id).filter((tool) => !featuredIds.has(tool.id)).slice(0, 6);
+            if (!sectionTools.length) return null;
+            return (
+              <section className="home-section home-section--quiet" key={category.id}>
+                <div className="container">
+                  <div className="home-section__header"><div><p className="eyebrow">CATEGORY</p><h2>{category.name}</h2></div><button className="text-link" onClick={() => navigate(`/explore?category=${category.id}`)}>查看全部</button></div>
+                  <div className="grid grid-cols-3">{sectionTools.map((tool) => <ToolCard key={tool.id} tool={tool} isSaved={savedIds.includes(tool.id)} onToggleSave={toggleSave} />)}</div>
+                </div>
+              </section>
+            );
+          })}
+
+          {aiTools.length > 0 && (
+            <section className="home-section">
+              <div className="container">
+                <div className="home-section__header"><div><p className="eyebrow">SERVICES</p><h2>AI 服务</h2></div><button className="text-link" onClick={() => navigate('/explore?category=ai')}>查看全部</button></div>
+                <div className="service-list">{aiTools.slice(0, 8).map((tool) => <ServiceRow key={tool.id} tool={tool} isSaved={savedIds.includes(tool.id)} onToggleSave={toggleSave} />)}</div>
+              </div>
+            </section>
+          )}
+        </>
       )}
-
-      {/* Development Tools */}
-      <section className="section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">💻 开发工具</h2>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => navigate('/explore?category=dev')}
-            >
-              查看全部 →
-            </button>
-          </div>
-          {loading ? (
-            <div className="tool-grid__loading">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-3">
-              {devTools.map((tool, i) => (
-                <ToolCard key={tool.id} tool={tool} index={i} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* AI Models */}
-      <section className="section ai-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">🤖 AI 大模型导航</h2>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => navigate('/explore?category=ai')}
-            >
-              查看全部 →
-            </button>
-          </div>
-          {loading ? (
-            <div className="tool-grid__loading">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-3">
-              {aiTools.map((tool, i) => (
-                <ToolCard key={tool.id} tool={tool} index={i} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Fun Tools */}
-      <section className="section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">🎮 趣味工具</h2>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => navigate('/explore?category=fun')}
-            >
-              查看全部 →
-            </button>
-          </div>
-          {loading ? (
-            <div className="tool-grid__loading">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-3">
-              {funTools.map((tool, i) => (
-                <ToolCard key={tool.id} tool={tool} index={i} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
     </div>
   );
 }

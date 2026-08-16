@@ -3,6 +3,8 @@
  */
 
 import { Hono } from 'hono';
+import type { Context } from 'hono';
+import type { AppEnv } from '../types';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import {
@@ -17,12 +19,13 @@ import {
   reviewTool,
 } from '../services/tools';
 import { isOwner } from '../services/auth';
+import { canViewTool } from '../services/permission';
 import type { UserContext } from '../types';
 
-const tools = new Hono();
+const tools = new Hono<AppEnv>();
 
 // 获取 URL 参数
-const getQuery = (c: Hono) => ({
+const getQuery = (c: Context<AppEnv>) => ({
   page: parseInt(c.req.query('page') || '1', 10),
   pageSize: parseInt(c.req.query('pageSize') || '20', 10),
 });
@@ -86,9 +89,9 @@ tools.get('/:id', async (c) => {
   }
 
   // 非公开/未发布工具仅限本人或平台 owner 查看
-  const isPublicPublished =
-    tool.visibility === 'public' && tool.status === 'published';
-  if (!isPublicPublished && !isOwner(user.id) && tool.owner?.id !== user.id) {
+  const isPublicPublished = tool.visibility === 'public' && tool.status === 'published';
+  const canView = canViewTool(tool, user.role, user.id);
+  if (!isPublicPublished && !canView) {
     return c.json({
       success: false,
       error: { code: 'FORBIDDEN', message: 'Tool is not public' },

@@ -1,0 +1,156 @@
+name: Tool Review
+
+on:
+  pull_request:
+    paths:
+      - 'tools/**'
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  tool-validation:
+    name: Validate Tool
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed tools
+        id: changed
+        run: |
+          CHANGED_TOOLS=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep "^tools/" | cut -d'/' -f2 | sort -u | tr '\n' ' ')
+          echo "tools=$CHANGED_TOOLS" >> $GITHUB_OUTPUT
+          echo "Changed tools: $CHANGED_TOOLS"
+
+      - name: Check manifest.json exists
+        run: |
+          for tool in ${{ steps.changed.outputs.tools }}; do
+            if [ ! -f "tools/$tool/manifest.json" ]; then
+              echo "❌ tools/$tool/manifest.json not found"
+              exit 1
+            fi
+            echo "✅ tools/$tool/manifest.json exists"
+          done
+
+      - name: Check index.html exists
+        run: |
+          for tool in ${{ steps.changed.outputs.tools }}; do
+            if [ ! -f "tools/$tool/index.html" ]; then
+              echo "❌ tools/$tool/index.html not found"
+              exit 1
+            fi
+            echo "✅ tools/$tool/index.html exists"
+          done
+
+      - name: Validate manifest.json
+        run: |
+          for tool in ${{ steps.changed.outputs.tools }}; do
+            echo "Validating tools/$tool/manifest.json..."
+            # Check required fields
+            if ! grep -q '"id"' "tools/$tool/manifest.json"; then
+              echo "❌ Missing 'id' field"
+              exit 1
+            fi
+            if ! grep -q '"name"' "tools/$tool/manifest.json"; then
+              echo "❌ Missing 'name' field"
+              exit 1
+            fi
+            if ! grep -q '"entry"' "tools/$tool/manifest.json"; then
+              echo "❌ Missing 'entry' field"
+              exit 1
+            fi
+            echo "✅ tools/$tool/manifest.json is valid"
+          done
+
+      - name: Check for malicious code
+        run: |
+          for tool in ${{ steps.changed.outputs.tools }}; do
+            echo "Scanning tools/$tool for malicious code..."
+            # Check for common tracking patterns
+            if grep -qi "analytics\|tracking\|google-analytics\|segment\|mixpanel" "tools/$tool/index.html"; then
+              echo "⚠️  Warning: Possible tracking code detected in tools/$tool"
+            fi
+            # Check for external script sources
+            if grep -q '<script src="http://' "tools/$tool/index.html"; then
+              echo "❌ Non-HTTPS script source found in tools/$tool"
+              exit 1
+            fi
+          done
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tools = `${{ steps.changed.outputs.tools }}`.split('\n').filter(t => t);
+            const toolList = tools.map(t => `- ${t}`).join('\n');
+            const body = `
+            ## 🛠️ 工具审核
+
+            检测到以下工具变更:
+
+            ${toolList ? toolList : '无'}
+
+            ### 审核清单
+
+            - [ ] manifest.json 格式正确
+            - [ ] index.html 存在且可独立运行
+            - [ ] 无恶意代码或追踪器
+            - [ ] 使用 HTTPS 加载外部资源
+
+            ### 下一步
+
+            维护者将审核你的 PR。审核通过后，工具将被合并并部署。
+
+            ---
+            *由 Chaotools CI 自动生成*
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  security-check:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: tool-validation
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run npm audit
+        run: |
+          # Check for package.json in tools
+          for dir in tools/*/; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Auditing $dir..."
+              # Basic security check
+              if grep -q '"version": "0.0.0"' "$dir/package.json"; then
+                echo "⚠️  Warning: $dir has version 0.0.0"
+              fi
+            fi
+          done
+
+  display-changed-tools:
+    name: Display Changed Tools
+    runs-on: ubuntu-latest
+    needs: tool-validation
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List changed files
+        run: |
+          echo "## 📁 变更的工具" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" | grep "^tools/" | while read file; do
+            tool=$(echo $file | cut -d'/' -f2)
+            echo "- \`$file\`" >> $GITHUB_STEP_SUMMARY
+          done

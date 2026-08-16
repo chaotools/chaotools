@@ -1,122 +1,60 @@
-# 部署指南
+# Chaotools 生产部署
 
-## 环境配置
+线上唯一源码根目录是 `/var/www/html`，运行时通过发布目录切换：
 
-### 1. Vercel (Hub 主站)
+```text
+/var/www/releases/<version>/
+/var/www/current -> /var/www/releases/<version>/
+```
 
-**需要的 Secrets:**
+Gateway 使用 `chaotools-gateway.service`，只监听 `127.0.0.1:3001`；Nginx 负责 HTTPS、静态文件和 `/gateway/` 代理。
+
+## 发布
 
 ```bash
-VERCEL_TOKEN        # Vercel API Token
-VERCEL_ORG_ID      # Vercel Organization ID
-VERCEL_HUB_PROJECT_ID  # Hub 项目 ID
+export SERVER_HOST=152.136.48.140
+export SERVER_USER=ubuntu
+export GIT_REF=main
+./scripts/deploy-gateway.sh
 ```
 
-**获取方式:**
-1. 登录 [Vercel Dashboard](https://vercel.com/dashboard)
-2. Settings → Tokens → Create Token
-3. Settings → Organizations → Copy Org ID
-4. Import Project → Copy Project ID
+发布脚本会建立新版本、安装锁定依赖、构建 Gateway 和 Hub、复制 Hub 静态产物、原子切换 `current`，然后检查 `/health` 和 `/ready`。
 
-### 2. Cloudflare Pages (工具)
+## 环境文件
 
-**需要的 Secrets:**
+生产环境文件固定为 `/etc/chaotools/gateway.env`，权限必须是 `600`。至少包含：
+
+```dotenv
+PORT=3001
+DATABASE_PATH=/home/ubuntu/chaotools-data/chaotools.db
+JWT_SECRET=<strong-random-secret>
+CORS_ORIGIN=https://chaotools.tech
+WEBHOOK_SECRET=<payment-webhook-secret>
+```
+
+数据库、日志、备份和密钥不得放在 Nginx 网站根目录。
+
+## 验收
 
 ```bash
-CLOUDFLARE_API_TOKEN   # Cloudflare API Token
-CLOUDFLARE_ACCOUNT_ID  # Cloudflare Account ID
-```
-
-**获取方式:**
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Profile → API Tokens → Create Token
-3. Account ID 在页面右侧获取
-
-### 3. 服务器部署 (Gateway)
-
-**需要的 Secrets:**
-
-```bash
-SERVER_HOST    # 服务器 IP 或域名
-SERVER_USER    # SSH 用户名
-SERVER_SSH_KEY  # SSH 私钥
-```
-
-## 设置 Secrets
-
-在 GitHub 仓库中:
-1. Settings → Secrets and variables → Actions
-2. New repository secret
-
-或者使用 GitHub CLI:
-
-```bash
-gh secret set VERCEL_TOKEN --body "your-token"
-gh secret set VERCEL_ORG_ID --body "your-org-id"
-# ... 其他 secrets
-```
-
-## 本地测试部署
-
-### Hub (Vercel)
-
-```bash
-cd hub
-vercel login
-vercel
-```
-
-### Tools (Cloudflare Pages)
-
-```bash
-wrangler pages deploy tools/
-```
-
-### Gateway
-
-```bash
-cd gateway
-bun run build
-bun run start
-```
-
-## 生产环境检查清单
-
-- [ ] 所有 secrets 已配置
-- [ ] 域名已解析
-- [ ] SSL 证书已生效
-- [ ] 数据库已初始化 (`bun run db:init`)
-- [ ] PM2 已配置开机自启
-- [ ] 监控已设置
-
-## 架构
-
-```
-                    ┌─────────────────┐
-                    │   Vercel       │
-                    │   (Hub 主站)   │
-                    └────────┬────────┘
-                             │
-┌─────────────┐     ┌────────▼────────┐     ┌─────────────────┐
-│ Cloudflare  │     │   Gateway API   │     │   你的服务器    │
-│ (Tools CDN) │     │  (Hono+Bun)   │     │   (Gateway)    │
-└─────────────┘     └─────────────────┘     └─────────────────┘
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm test
+pnpm --filter @chaotools/gateway build
+pnpm --filter @chaotools/hub build
+sudo nginx -t
+systemctl is-active chaotools-gateway.service
+curl -fsS https://chaotools.tech/health
+curl -fsS https://chaotools.tech/gateway/ready
 ```
 
 ## 回滚
 
-### Vercel
 ```bash
-vercel rollback --token=$VERCEL_TOKEN
+export SERVER_HOST=152.136.48.140
+export SERVER_USER=ubuntu
+export VERSION=<previous-release>
+./scripts/rollback-production.sh
 ```
 
-### Cloudflare Pages
-在 Cloudflare Dashboard 中手动回滚
-
-### Gateway
-```bash
-pm2 stop gateway
-git checkout <previous-commit>
-bun run build
-pm2 start dist/index.js --name gateway
-```
+回滚只切换符号链接，不删除旧发布目录。数据库迁移前必须先完成备份和完整性检查。
