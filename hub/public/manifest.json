@@ -1091,6 +1091,33 @@
       },
       "status": "published",
       "visibility": "public"
+    },
+    {
+      "id": "ledger",
+      "name": "提成记账",
+      "description": "记业绩自动算提成、预留与实发工资；手机与电脑共用一份账本，网页端用一次性码授权登录",
+      "categories": [
+        "life"
+      ],
+      "tech": {
+        "entry": "/ledger/"
+      },
+      "tags": [
+        "记账",
+        "提成",
+        "工资",
+        "预留",
+        "账本"
+      ],
+      "icon": "💰",
+      "slug": "ledger",
+      "owner": {
+        "id": "chaotools",
+        "name": "Chaotools",
+        "type": "owner"
+      },
+      "status": "published",
+      "visibility": "public"
     }
   ],
   "categories": [
@@ -1111,6 +1138,12 @@
       "name": "趣味工具",
       "icon": "🎮",
       "description": "轻松好玩的趣味工具"
+    },
+    {
+      "id": "life",
+      "name": "生活工具",
+      "icon": "🧰",
+      "description": "记账、待办与日常实用工具"
     }
   ]
 }

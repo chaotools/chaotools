@@ -449,6 +449,10 @@
           background: var(--cat-fun-grad);
         }
 
+        .category-filter__btn--active[data-cat="life"] {
+          background: var(--cat-life-grad);
+        }
+
         .category-filter__btn:focus-visible {
           outline: 2px solid var(--color-primary);
           outline-offset: 2px;
