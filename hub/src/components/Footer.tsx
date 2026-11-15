@@ -26,6 +26,7 @@ export function Footer() {
             <Link to="/explore?category=dev" className="footer__link">开发工具</Link>
             <Link to="/explore?category=ai" className="footer__link">AI 大模型</Link>
             <Link to="/explore?category=fun" className="footer__link">趣味工具</Link>
+            <Link to="/explore?category=life" className="footer__link">生活工具</Link>
           </div>
           <div className="footer__col">
             <h3 className="footer__col-title">关于</h3>
