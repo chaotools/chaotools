@@ -12,7 +12,7 @@ if (!manifest || !Array.isArray(manifest.tools) || !Array.isArray(manifest.categ
 
 const ids = new Set();
 const failures = [];
-const serviceEntries = new Set(['/lhb-analyzer/', '/audio-trimmer/']);
+const serviceEntries = new Set(['/lhb-analyzer/', '/audio-trimmer/', '/ledger/']);
 for (const tool of manifest.tools) {
   if (!tool || typeof tool.id !== 'string' || !tool.id.trim()) failures.push('tool without id');
   if (ids.has(tool.id)) failures.push(`duplicate tool id: ${tool.id}`);
